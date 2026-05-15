@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Plex genres{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <style>
+    :root {
+      --bg: #0f1218;
+      --panel: #171b24;
+      --text: #e8eaef;
+      --muted: #8b93a7;
+      --accent: #6c9fff;
+      --border: #2a3142;
+      --error: #ff8a8a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+    header h1 { margin: 0 0 0.35rem; font-size: 1.35rem; font-weight: 650; }
+    header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+    main { padding: 1.25rem 1.5rem 2.5rem; max-width: 960px; margin: 0 auto; }
+    code { background: #252a38; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { text-align: left; padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { color: var(--muted); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .thumb { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: #252a38; }
+    .artist { font-size: 0.85rem; color: var(--muted); }
+    .album-title { font-weight: 600; }
+    .genre-form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    .genre-form input:not([type="hidden"]) {
+      flex: 1 1 140px;
+      min-width: 120px;
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #12151c;
+      color: var(--text);
+    }
+    .genre-form button {
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      border: none;
+      background: var(--accent);
+      color: #0a0e14;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .genre-form button:hover { filter: brightness(1.08); }
+    .genre-form.htmx-request button { opacity: 0.6; cursor: wait; }
+    .genre-form input[type="hidden"] { display: none; }
+    .genre-editor { display: flex; flex-direction: column; gap: 0.55rem; }
+    .chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; flex: 1 1 auto; min-height: 2rem; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.45rem 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: #252a38;
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+    }
+    .chip-x {
+      margin: 0;
+      padding: 0 0.15rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      border-radius: 4px;
+    }
+    .chip-x:hover { color: var(--text); background: #3a4154; }
+    .genre-add-row { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .genre-add-input {
+      flex: 1 1 120px;
+      min-width: 100px;
+      max-width: 220px;
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #12151c;
+      color: var(--text);
+    }
+    button.genre-add-btn.secondary {
+      padding: 0.4rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #252a38;
+      color: var(--text);
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button.genre-add-btn.secondary:hover { filter: brightness(1.06); }
+    .row-error { color: var(--error); font-size: 0.82rem; margin-top: 0.35rem; }
+    .row-note { color: #c9b87a; font-size: 0.82rem; margin-top: 0.35rem; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: flex-end;
+      margin-top: 0.5rem;
+    }
+    .toolbar label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--muted); }
+    .toolbar input[type="search"] {
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #12151c;
+      color: var(--text);
+      min-width: 220px;
+    }
+    .toolbar button {
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #252a38;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .pager { margin-top: 1.25rem; display: flex; gap: 1rem; align-items: center; color: var(--muted); }
+    .pager a { color: var(--accent); text-decoration: none; }
+    .pager a:hover { text-decoration: underline; }
+    .banner { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .banner.error { background: #2a1a1a; border: 1px solid #5a3030; color: var(--error); }
+    .banner.warn { background: #2a2618; border: 1px solid #5a5230; color: #e8d9a8; }
+    .album-stats { color: var(--muted); font-size: 0.9rem; margin: 0.65rem 0 0.35rem; line-height: 1.5; }
+    .album-stats .stat-tag { color: var(--muted); font-weight: 400; }
+    .toolbar-check { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; color: var(--text); cursor: pointer; }
+    .toolbar-check input { width: auto; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>{% block heading %}Plex genres{% endblock %}</h1>
+    {% block subheading %}{% endblock %}
+  </header>
+  <main>
+    {% block body %}{% endblock %}
+  </main>
+  {% if rym_genre_options_html %}
+  <datalist id="rym-genre-list">
+{{ rym_genre_options_html|safe }}
+  </datalist>
+  {% endif %}
+  <script>
+  (function () {
+    function editorRoot(el) {
+      return el && el.closest ? el.closest('.genre-editor') : null;
+    }
+    function chipTags(chipsEl) {
+      return Array.from(chipsEl.querySelectorAll('.chip')).map(function (c) {
+        return c.getAttribute('data-tag') || '';
+      }).filter(Boolean);
+    }
+    function syncHidden(root) {
+      var h = root.querySelector('.genre-hidden-input');
+      var chips = root.querySelector('.chips');
+      if (h && chips) h.value = chipTags(chips).join(', ');
+    }
+    function addChip(root, rawTag) {
+      var tag = rawTag.replace(/^\s+|\s+$/g, '');
+      if (!tag) return;
+      var chips = root.querySelector('.chips');
+      if (!chips) return;
+      var lower = tag.toLowerCase();
+      var dup = Array.from(chips.querySelectorAll('.chip')).some(function (c) {
+        return (c.getAttribute('data-tag') || '').toLowerCase() === lower;
+      });
+      if (dup) return;
+      var span = document.createElement('span');
+      span.className = 'chip';
+      span.setAttribute('data-tag', tag);
+      span.appendChild(document.createTextNode(tag + ' '));
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'chip-x';
+      btn.setAttribute('aria-label', 'Remove ' + tag);
+      btn.textContent = '\u00d7';
+      span.appendChild(btn);
+      chips.appendChild(span);
+      syncHidden(root);
+    }
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t.closest && t.closest('.chip-x')) {
+        var chip = t.closest('.chip');
+        var root = chip && editorRoot(chip);
+        if (chip && root) {
+          chip.remove();
+          syncHidden(root);
+        }
+        return;
+      }
+      if (t.closest && t.closest('.genre-add-btn')) {
+        var root = editorRoot(t.closest('.genre-add-btn'));
+        if (!root) return;
+        var inp = root.querySelector('.genre-add-input');
+        if (inp) {
+          addChip(root, inp.value);
+          inp.value = '';
+          inp.focus();
+        }
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      if (!e.target.classList || !e.target.classList.contains('genre-add-input')) return;
+      var root = editorRoot(e.target);
+      if (!root) return;
+
+      if (e.metaKey || e.ctrlKey) {
+        e.preventDefault();
+        syncHidden(root);
+        var form = root.querySelector('form.genre-form');
+        if (form) form.requestSubmit();
+        return;
+      }
+
+      e.preventDefault();
+      addChip(root, e.target.value);
+      e.target.value = '';
+    });
+
+    document.body.addEventListener('htmx:beforeRequest', function (evt) {
+      var elt = evt.detail && evt.detail.elt;
+      if (!elt || !elt.classList || !elt.classList.contains('genre-form')) return;
+      var root = editorRoot(elt);
+      if (root) syncHidden(root);
+    });
+  })();
+  </script>
+</body>
+</html>
