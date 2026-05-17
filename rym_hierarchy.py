@@ -7,7 +7,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 # Section roots in the hierarchy file — not useful as Plex genre tags.
-_SKIP_ANCESTOR_LABELS = frozenset({"Descriptors", "Genres", "Scenes & Movements", "Regional Music", "North American Music", "Northern American Music", "Hispanic Music", "Hispanic American Music"})
+_SKIP_ANCESTOR_LABELS = frozenset(
+    {
+        "Descriptors",
+        "Genres",
+        "Scenes & Movements",
+        "Regional Music",
+        "North American Music",
+        "Northern American Music",
+        "Hispanic Music",
+        "Hispanic American Music",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -67,7 +78,9 @@ def _resolve_one(name: str, nodes: list[ResolvedNode]) -> ResolvedNode | None:
     return best
 
 
-def expand_genre_picks(picks: list[str], nodes: list[ResolvedNode]) -> tuple[list[str], list[str]]:
+def expand_genre_picks(
+    picks: list[str], nodes: list[ResolvedNode]
+) -> tuple[list[str], list[str]]:
     """Return Plex genre strings in order, with parents before each recognized pick; dedupe case-insensitively.
 
     Unknown picks are kept as-is (no parent expansion).
