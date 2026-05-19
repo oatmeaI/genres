@@ -32,7 +32,7 @@ from plex_server import get_music_section
 from search import (
     fetch_gap_page_slice,
     fetch_browse_page_slice,
-    fetch_all_gap_matches,
+    AlbumCache,
     album_has_rym_genre_gap,
     passes_multi_track_filter,
 )
@@ -46,7 +46,9 @@ log = logging.getLogger(__name__)
 
 def create_app() -> Flask:
     app = Flask(__name__)
-
+    section = get_music_section()
+    album_cache = AlbumCache(section, "lastViewedAt:desc")
+    album_cache.load()
     rym = get_rym_hierarchy()
 
     @app.context_processor
@@ -96,6 +98,7 @@ def create_app() -> Flask:
         scan_hit_cap = False
         filter_match_total: int | None = None
         gap_count_pending = False
+        timer.time("lib size")
 
         try:
             if q:
@@ -114,14 +117,13 @@ def create_app() -> Flask:
                 pager_has_next = start + per < len(all_found)
             elif gap_effective:
                 timer.time("fetch albums")
-                albums, pager_has_next, scan_hit_cap = fetch_gap_page_slice(
-                    section,
-                    album_sort,
+                albums, pager_has_next, scan_hit_cap = album_cache.fetch_gap_page_slice(
                     rym_cf,
                     page,
                     per,
                     exclude_single_tracks,
                 )
+                timer.time("fetch albums")
                 filter_match_total = None
                 gap_count_pending = True
             else:
@@ -183,13 +185,13 @@ def create_app() -> Flask:
             )
 
         try:
-            album = section.fetchItem(rating_key)
+            album = album_cache.get(rating_key)
         except NotFound:
             abort(404)
 
         rym = get_rym_hierarchy()
 
-        if rym is None:
+        if rym is None or album is None:
             abort(500)
 
         picks = [s.strip() for s in genre.split(",") if s.strip()]
@@ -197,11 +199,23 @@ def create_app() -> Flask:
         tags.reverse()
 
         try:
+            timer.time("album genre")
             set_album_genres(album, tags)
+            timer.time("album genre")
+
+            timer.time("track genre")
             set_tracks_genres(album, tags)
+            timer.time("track genre")
+
+            timer.time("reload album")
+            album_cache.update(album)
+            timer.time("reload album")
+
+            timer.time("file update")
             disk = music_library_root()
             if disk is not None:
                 sync_album_genres_to_track_files(album, tags)
+            timer.time("file update")
 
         except Exception as e:
             print(f"error: {e}")
@@ -230,13 +244,6 @@ def create_app() -> Flask:
 
     @app.get("/partial/gap-match-count")
     def gap_match_count():
-        return "—", 200
-        """Full-library gap scan; fills server cache. Loaded async via HTMX so / does not block."""
-        try:
-            section = get_music_section()
-        except RuntimeError as e:
-            return escape(str(e)), 503
-
         rym = get_rym_hierarchy()
         rym_cf = rym_genre_names_casefold(rym.nodes) if rym else None
         if not rym_cf:
@@ -250,16 +257,14 @@ def create_app() -> Flask:
         )
 
         try:
-            matches, hit_cap = fetch_all_gap_matches(
-                section, "addedAt:desc", rym_cf, exclude_single_tracks
-            )
+            matches = album_cache.fetch_all_gap_matches(rym_cf, exclude_single_tracks)
         except (BadRequest, NotFound) as e:
             return escape(str(e)), 400
 
         return render_template(
             "partial_gap_count_inner.html",
             total=len(matches),
-            scan_hit_cap=hit_cap,
+            scan_hit_cap=False,
         )
 
     return app
