@@ -230,6 +230,7 @@ def create_app() -> Flask:
 
     @app.get("/partial/gap-match-count")
     def gap_match_count():
+        return "—", 200
         """Full-library gap scan; fills server cache. Loaded async via HTMX so / does not block."""
         try:
             section = get_music_section()
