@@ -79,6 +79,16 @@ def create_app() -> Flask:
         except ValueError:
             page = 1
 
+        force_reload = request.args.get("reload") in (
+            "1",
+            "on",
+            "true",
+            "yes",
+        )
+
+        if force_reload:
+            album_cache.load(force=True)
+
         per = 10
         start = (page - 1) * per
         album_sort = "lastViewedAt:desc"  # TODO: query param

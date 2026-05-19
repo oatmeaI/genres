@@ -134,12 +134,13 @@ class AlbumCache:
 
     def load(
         self,
+        force: bool = False,
         chunk: int = 100,
         max_scan: int = 50_000,  # 1000,  # TODO: make this a setting this is usually 50k; set to a small number for debugging
     ):
         timer.time("load")
 
-        if self.loaded:
+        if self.loaded and not force:
             return
 
         container_start = 0

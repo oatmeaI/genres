@@ -23,6 +23,10 @@
       <input type="checkbox" name="no_singleton" value="1" {% if exclude_single_tracks %}checked{% endif %}>
       Exclude single-track albums
     </label>
+    <label class="toolbar-check">
+      <input type="checkbox" name="reload" value="1">
+      Force reload
+    </label>
     <button type="submit">Apply</button>
     {% if q or rym_gaps or exclude_single_tracks %}
       <a class="btn-link secondary" href="{{ url_for('index') }}" style="text-decoration:none;display:inline-block;">Clear all</a>
