@@ -2,6 +2,7 @@ from plexapi.library import MusicSection
 from datetime import datetime
 from util import disable_requests_logging, enable_requests_logging, timer
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from env import env
 
 
 def album_has_rym_genre_gap(album, rym_cf: set[str]) -> bool:
@@ -136,9 +137,11 @@ class AlbumCache:
         self,
         force: bool = False,
         chunk: int = 100,
-        max_scan: int = 50_000,  # 1000,  # TODO: make this a setting this is usually 50k; set to a small number for debugging
+        max_scan: int | None = None,
     ):
         timer.time("load")
+
+        max_scan = max_scan or int(env("MAX_SCAN", "50_000"))
 
         if self.loaded and not force:
             return

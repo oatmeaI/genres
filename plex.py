@@ -1,43 +1,33 @@
-from util import disable_requests_logging, enable_requests_logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
-
-def process_track(album, track, tags):
-    print(
-        f"processing Plex track: {track.title} ({track.trackNumber} / {album.leafCount})"
-    )
-
-    track.batchEdits()
-
-    edits = {}
-    if len(track.genres) > 0:
-        edits["genre[].tag.tag-"] = ",".join(g.tag for g in track.genres)
-
-    i = 0
-    for tag in tags:
-        edits[f"genre[{i}].tag.tag"] = tag
-        edits[f"style[{i}].tag.tag"] = tag
-        i += 1
-
-    track.edit(**edits)
-    track.saveEdits()
+from env import env
+import requests
 
 
 def set_tracks_genres(album, tags):
     tracks = album.tracks()
 
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = {
-            executor.submit(process_track, album, track, tags): track
-            for track in tracks
-        }
+    # We're going rogue here, because Python-PlexAPI doesn't seem to support this.
+    params = {
+        "type": 10,
+        "id": ",".join([f"{t.ratingKey}" for t in tracks]),
+        "genre.locked": 1,
+        "X-Plex-Token": env("PLEX_TOKEN"),
+    }
 
-        for future in as_completed(futures):
-            track = futures[future]
-            try:
-                future.result()  # This will raise any exception that occurred during processing
-            except Exception as e:
-                print(f"Error processing track {track.title}: {e}")
+    for track in tracks:
+        if len(track.genres) > 0:
+            params["genre[].tag.tag-"] = ",".join(g.tag for g in track.genres)
+
+    i = 0
+    for tag in tags:
+        params[f"genre[{i}].tag.tag"] = tag
+        i += 1
+
+    url = f"{env('PLEX_URL')}/library/sections/1/all"
+    response = requests.put(url, params=params)
+    if response.status_code == 200:
+        print("Processed Plex tracks")
+    else:
+        print(f"Request failed with status code: {response.status_code}")
 
 
 def set_album_genres(album, tags):
