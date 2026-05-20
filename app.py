@@ -214,18 +214,19 @@ def create_app() -> Flask:
             timer.time("album genre")
 
             timer.time("track genre")
-            set_tracks_genres(album, tags)
+            set_tracks_genres(album, tags, section)
             timer.time("track genre")
 
             timer.time("reload album")
             album_cache.update(album)
             timer.time("reload album")
 
-            timer.time("file update")
-            disk = music_library_root()
-            if disk is not None:
-                sync_album_genres_to_track_files(album, tags)
-            timer.time("file update")
+            if bool(env("EDIT_TAGS", "")):
+                timer.time("file update")
+                disk = music_library_root()
+                if disk is not None:
+                    sync_album_genres_to_track_files(album, tags)
+                timer.time("file update")
 
         except Exception as e:
             print(f"error: {e}")

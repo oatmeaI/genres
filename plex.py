@@ -2,7 +2,7 @@ from env import env
 import requests
 
 
-def set_tracks_genres(album, tags):
+def set_tracks_genres(album, tags, section):
     tracks = album.tracks()
 
     # We're going rogue here, because Python-PlexAPI doesn't seem to support this.
@@ -22,7 +22,7 @@ def set_tracks_genres(album, tags):
         params[f"genre[{i}].tag.tag"] = tag
         i += 1
 
-    url = f"{env('PLEX_URL')}/library/sections/1/all"
+    url = f"{env('PLEX_URL')}/library/sections/{section.key}/all"
     response = requests.put(url, params=params)
     if response.status_code == 200:
         print("Processed Plex tracks")
