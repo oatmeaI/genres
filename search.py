@@ -4,6 +4,40 @@ from util import disable_requests_logging, enable_requests_logging, timer
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from env import env
 
+ALBUM_SORT_RECENTLY_PLAYED = "played"
+ALBUM_SORT_RECENTLY_ADDED = "added"
+ALBUM_SORT_MOST_PLAYED = "plays"
+DEFAULT_ALBUM_SORT = ALBUM_SORT_RECENTLY_PLAYED
+
+_PLEX_ALBUM_SORT = {
+    ALBUM_SORT_RECENTLY_PLAYED: "lastViewedAt:desc",
+    ALBUM_SORT_RECENTLY_ADDED: "addedAt:desc",
+    ALBUM_SORT_MOST_PLAYED: "viewCount:desc",
+}
+
+
+def resolve_album_sort(value: str | None) -> str:
+    if value in _PLEX_ALBUM_SORT:
+        return value
+    return DEFAULT_ALBUM_SORT
+
+
+def plex_album_sort(value: str | None) -> str:
+    return _PLEX_ALBUM_SORT[resolve_album_sort(value)]
+
+
+def album_sort_key(album, sort_mode: str):
+    mode = resolve_album_sort(sort_mode)
+    if mode == ALBUM_SORT_RECENTLY_ADDED:
+        return album.addedAt or datetime.min
+    if mode == ALBUM_SORT_MOST_PLAYED:
+        return album.viewCount or 0
+    return album.lastViewedAt or datetime.min
+
+
+def sort_albums(albums: list, sort_mode: str) -> list:
+    return sorted(albums, key=lambda a: album_sort_key(a, sort_mode), reverse=True)
+
 
 def album_has_rym_genre_gap(album, rym_cf: set[str]) -> bool:
     genres = album.genres or []
@@ -204,10 +238,11 @@ class AlbumCache:
         page: int,
         per: int,
         exclude_single_tracks: bool,
+        sort_mode: str = DEFAULT_ALBUM_SORT,
     ) -> tuple[list, bool, bool]:
         # enable_requests_logging()
         start = (page - 1) * per
-        all_album_list = sorted(
+        all_album_list = sort_albums(
             list(
                 filter(
                     lambda x: (
@@ -217,10 +252,7 @@ class AlbumCache:
                     list(self.albums.values()),
                 )
             ),
-            key=lambda album: (
-                album.lastViewedAt if album.lastViewedAt is not None else datetime.min
-            ),
-            reverse=True,
+            sort_mode,
         )
         album_list = all_album_list[start : start + per]
         has_next = start + per < len(all_album_list)

@@ -1,0 +1,13 @@
+---
+genres:
+- name: "Stoner Doom"
+  examples: ["Electric Wizard", "Dopelord"]
+  related: ["Doom Metal"]
+
+- name: "Stoner Sludge"
+  examples: ["Weedeater", "Bongzilla", "Dopethrone"]
+  related: ["Sludge Metal"]
+
+- name: "Doom Metal"
+
+- name: "Pop Punk"

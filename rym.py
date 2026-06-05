@@ -2,13 +2,24 @@ from functools import cache
 from pathlib import Path
 from env import env
 from dataclasses import dataclass
-from rym_hierarchy import build_datalist_inner_html, load_nodes
+from rym_hierarchy import (
+    build_datalist_inner_html,
+    expand_genre_picks,
+    load_nodes,
+    rym_genre_names_casefold,
+)
 
 
 @dataclass
 class RymHierarchy:
     nodes: list
     datalist_inner_html: str
+
+    def expand_picks(self, picks: list[str]) -> tuple[list[str], list[str]]:
+        return expand_genre_picks(picks, self.nodes)
+
+    def known_names_casefold(self) -> set[str]:
+        return rym_genre_names_casefold(self.nodes)
 
 
 def hierarchy_path() -> Path:

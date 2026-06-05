@@ -31,7 +31,7 @@
         </div>
       </div>
     <div class="genre-add-row">
-      <input type="text" class="genre-add-input" list="rym-genre-list" value="" placeholder="Add genre…" aria-label="Add genre for {{ album.title }}">
+      <input type="text" class="genre-add-input" list="genre-list" value="" placeholder="Add genre…" aria-label="Add genre for {{ album.title }}">
       <button type="button" class="genre-add-btn secondary">Add</button>
     </div>
   </td>
@@ -50,7 +50,8 @@
         </div>
         <input type="hidden" name="genre" class="genre-hidden-input" value="{{ chip_tags|join(', ') }}">
         <div>
-            <button type="submit">Save</button>
+            <input type="hidden" name="genre_src" value="{{ genre_src }}">
+        <button type="submit">Save</button>
         </div>
       </form>
     {% if genre_unknown_note %}

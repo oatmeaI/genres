@@ -5,14 +5,14 @@ Configuration (environment variables):
   PLEX_TOKEN               X-Plex-Token for an account that can edit the library
   PLEX_SECTION             Optional: exact name of the music library (uses the first music library if unset)
   RYM_HIERARCHY_PATH       Optional: path to RateYourMusic Hierarchy.txt (default: ./data/RateYourMusic_Hierarchy.txt)
+  GENRES_YAML_PATH         Optional: path to custom genres.yaml (default: ./data/genres.yaml)
   MUSIC_LIBRARY_DISK_PATH  Optional: local filesystem root of the same music library Plex uses. When set, saving
                            genres also writes a single ``genre`` tag to each track file (semicolon-separated) via
                            mutagen. Paths are resolved by matching Plex ``MediaPart.file`` against this library's
                            Plex folder roots, then re-rooting under ``MUSIC_LIBRARY_DISK_PATH``.
 
-When the hierarchy file is loaded, each comma-separated genre you enter is matched (case-insensitive) to the
-tree. Recognized names are expanded to include ancestor genres on the album; top-level section labels
-(Descriptors, Genres, Scenes & Movements) are omitted. Names not found in the tree are still saved as typed.
+The UI can switch between the RYM tree and genres.yaml (``?genre_src=custom``). RYM expands ancestor genres;
+genres.yaml expands each entry's ``related`` list. Names not found in the active list are still saved as typed.
 """
 
 from __future__ import annotations
@@ -26,7 +26,8 @@ from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
 from plex import set_album_genres, set_tracks_genres, titlecase_tracks
-from rym import get_rym_hierarchy
+from genres_yaml import GenresYaml, get_genres_yaml
+from rym import RymHierarchy, get_rym_hierarchy
 from env import env
 from util import form_bool, timer
 from plex_server import get_music_section
@@ -35,13 +36,25 @@ from search import (
     AlbumCache,
     album_has_rym_genre_gap,
     passes_multi_track_filter,
-)
-from rym_hierarchy import (
-    expand_genre_picks,
-    rym_genre_names_casefold,
+    plex_album_sort,
+    resolve_album_sort,
+    sort_albums,
 )
 
 log = logging.getLogger(__name__)
+
+GENRE_SOURCE_RYM = "rym"
+GENRE_SOURCE_CUSTOM = "custom"
+
+
+def resolve_genre_source(value: str | None) -> str:
+    return GENRE_SOURCE_CUSTOM if value == GENRE_SOURCE_CUSTOM else GENRE_SOURCE_RYM
+
+
+def get_genre_hierarchy(source: str) -> RymHierarchy | GenresYaml | None:
+    if source == GENRE_SOURCE_CUSTOM:
+        return get_genres_yaml()
+    return get_rym_hierarchy()
 
 
 def create_app() -> Flask:
@@ -49,24 +62,34 @@ def create_app() -> Flask:
     section = get_music_section()
     album_cache = AlbumCache(section, "lastViewedAt:desc")
     album_cache.load()
-    rym = get_rym_hierarchy()
 
     @app.context_processor
-    def inject_rym_datalist():
-        return {"rym_genre_options_html": rym.datalist_inner_html if rym else ""}
+    def inject_genre_datalist():
+        src = resolve_genre_source(request.args.get("genre_src") if request else None)
+        hierarchy = get_genre_hierarchy(src)
+        return {
+            "genre_options_html": hierarchy.datalist_inner_html if hierarchy else "",
+            "genre_src": src,
+        }
 
     @app.route("/")
     def index():
         timer.time("route")
-        if rym is None:
-            log.warning("Couldn't load RYM hiercharchy")
-            abort(500)
             return
 
         try:
             section = get_music_section()
         except RuntimeError as e:
             return render_template("error.html", message=str(e)), 503
+
+        genre_src = resolve_genre_source(request.args.get("genre_src"))
+        hierarchy = get_genre_hierarchy(genre_src)
+        if hierarchy is None:
+            label = "genres.yaml" if genre_src == GENRE_SOURCE_CUSTOM else "RYM hierarchy"
+            return render_template(
+                "error.html",
+                message=f"Could not load {label}.",
+            ), 503
 
         rym_gaps = request.args.get("rym_gaps") in ("1", "on", "true", "yes")
         exclude_single_tracks = request.args.get("no_singleton") in (
@@ -92,13 +115,14 @@ def create_app() -> Flask:
 
         per = 10
         start = (page - 1) * per
-        album_sort = "lastViewedAt:desc"  # TODO: query param
+        album_sort = resolve_album_sort(request.args.get("sort"))
+        plex_sort = plex_album_sort(album_sort)
         q = (request.args.get("q") or "").strip()
         hub_limit = 500
 
-        rym_cf = rym_genre_names_casefold(rym.nodes)
-        gap_effective = bool(rym_gaps and rym_cf is not None)
-        gap_unavailable = bool(rym_gaps and rym_cf is None)
+        known_cf = hierarchy.known_names_casefold()
+        gap_effective = bool(rym_gaps and known_cf is not None)
+        gap_unavailable = bool(rym_gaps and known_cf is None)
 
         timer.time("lib size")
         try:
@@ -116,7 +140,7 @@ def create_app() -> Flask:
                 all_found = section.hubSearch(q, mediatype="album", limit=hub_limit)
                 if gap_effective:
                     all_found = [
-                        a for a in all_found if album_has_rym_genre_gap(a, rym_cf)
+                        a for a in all_found if album_has_rym_genre_gap(a, known_cf)
                     ]
                 if exclude_single_tracks:
                     all_found = [
@@ -124,22 +148,24 @@ def create_app() -> Flask:
                     ]
                 if gap_effective or exclude_single_tracks:
                     filter_match_total = len(all_found)
+                all_found = sort_albums(all_found, album_sort)
                 albums = all_found[start : start + per]
                 pager_has_next = start + per < len(all_found)
             elif gap_effective:
                 timer.time("fetch albums")
                 albums, pager_has_next, scan_hit_cap = album_cache.fetch_gap_page_slice(
-                    rym_cf,
+                    known_cf,
                     page,
                     per,
                     exclude_single_tracks,
+                    album_sort,
                 )
                 timer.time("fetch albums")
                 filter_match_total = None
                 gap_count_pending = True
             else:
                 albums, pager_has_next, scan_hit_cap = fetch_browse_page_slice(
-                    section, album_sort, page, per, exclude_single_tracks
+                    section, plex_sort, page, per, exclude_single_tracks
                 )
         except (BadRequest, NotFound) as e:
             return (
@@ -151,6 +177,8 @@ def create_app() -> Flask:
                     page=page,
                     per_page=per,
                     rym_gaps=rym_gaps,
+                    genre_src=genre_src,
+                    album_sort=album_sort,
                     exclude_single_tracks=exclude_single_tracks,
                     gap_unavailable=gap_unavailable,
                     pager_has_next=False,
@@ -177,6 +205,8 @@ def create_app() -> Flask:
             page=page,
             per_page=per,
             rym_gaps=rym_gaps,
+            genre_src=genre_src,
+            album_sort=album_sort,
             exclude_single_tracks=exclude_single_tracks,
             gap_unavailable=gap_unavailable,
             gap_effective=gap_effective,
@@ -224,12 +254,12 @@ def create_app() -> Flask:
             abort(404)
             return
 
-        if rym is None or album is None:
+        if hierarchy is None or album is None:
             abort(500)
             return
 
         picks = [s.strip() for s in genre.split(",") if s.strip()]
-        tags, unknown = expand_genre_picks(picks, rym.nodes)
+        tags, unknown = hierarchy.expand_picks(picks)
         tags.reverse()
 
         try:
@@ -268,26 +298,34 @@ def create_app() -> Flask:
                     chip_tags=chip_tags,
                     error=str(e),
                     genre_unknown_note=None,
+                    genre_src=genre_src,
                 ),
                 400,
             )
 
         note = None
         if unknown:
-            note = "Not in RYM hierarchy (saved as typed): " + ", ".join(unknown)
+            label = (
+                "genres.yaml"
+                if genre_src == GENRE_SOURCE_CUSTOM
+                else "RYM hierarchy"
+            )
+            note = f"Not in {label} (saved as typed): " + ", ".join(unknown)
 
         return render_template(
             "partial_album_row.html",
             album=album,
             error=None,
             genre_unknown_note=note,
+            genre_src=genre_src,
         )
 
     @app.get("/partial/gap-match-count")
     def gap_match_count():
-        rym = get_rym_hierarchy()
-        rym_cf = rym_genre_names_casefold(rym.nodes) if rym else None
-        if not rym_cf:
+        genre_src = resolve_genre_source(request.args.get("genre_src"))
+        hierarchy = get_genre_hierarchy(genre_src)
+        known_cf = hierarchy.known_names_casefold() if hierarchy else None
+        if not known_cf:
             return "—", 200
 
         exclude_single_tracks = request.args.get("no_singleton") in (
@@ -298,7 +336,7 @@ def create_app() -> Flask:
         )
 
         try:
-            matches = album_cache.fetch_all_gap_matches(rym_cf, exclude_single_tracks)
+            matches = album_cache.fetch_all_gap_matches(known_cf, exclude_single_tracks)
         except (BadRequest, NotFound) as e:
             return escape(str(e)), 400
 

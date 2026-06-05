@@ -152,9 +152,9 @@
   <main>
     {% block body %}{% endblock %}
   </main>
-  {% if rym_genre_options_html %}
-  <datalist id="rym-genre-list">
-{{ rym_genre_options_html|safe }}
+  {% if genre_options_html %}
+  <datalist id="genre-list">
+{{ genre_options_html|safe }}
   </datalist>
   {% endif %}
   <script>
