@@ -1,4 +1,5 @@
-from env import env
+from env import env, flag
+from titlecase import titlecase
 import requests
 
 
@@ -10,6 +11,7 @@ def set_tracks_genres(album, tags, section):
         "type": 10,
         "id": ",".join([f"{t.ratingKey}" for t in tracks]),
         "genre.locked": 1,
+        "style.locked": 1,
         "X-Plex-Token": env("PLEX_TOKEN"),
     }
 
@@ -30,10 +32,22 @@ def set_tracks_genres(album, tags, section):
         print(f"Request failed with status code: {response.status_code}")
 
 
+def titlecase_album(album):
+    album.editTitle(titlecase(album.title))
+
+
+def titlecase_tracks(album):
+    tracks = album.tracks()
+    for track in tracks:
+        track.editTitle(titlecase(track.title))
+
+
 def set_album_genres(album, tags):
     album.batchEdits()
 
     edits = {}
+    edits["genre.locked"] = 1
+    edits["style.locked"] = 1
 
     if len(album.genres) > 0:
         edits["genre[].tag.tag-"] = ",".join(g.tag for g in album.genres)

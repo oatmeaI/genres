@@ -17,6 +17,24 @@ class Timer:
 timer = Timer()
 
 
+def form_bool(request, name):
+    return request.form.get(name) in (
+        "1",
+        "on",
+        "true",
+        "yes",
+    )
+
+
+def query_bool(request, name):
+    return request.args.get(name) in (
+        "1",
+        "on",
+        "true",
+        "yes",
+    )
+
+
 def disable_requests_logging():
     import logging
     import http.client as http_client
@@ -39,4 +57,3 @@ def enable_requests_logging():
     requests_log = logging.getLogger("requests.packages.urllib3")
     requests_log.setLevel(logging.DEBUG)
     requests_log.propagate = True
-

@@ -9,3 +9,7 @@ def env(name: str, default: str = "") -> str:
     if v is None or v == "":
         return default
     return v
+
+
+def flag(name: str, default: bool) -> bool:
+    return bool(env(name, "" if not default else "true"))

@@ -1,5 +1,5 @@
 {% set chip_tags = chip_tags if chip_tags is defined else ((album.genres or [])|map(attribute='tag')|list) %}
-<tr id="album-{{ album.ratingKey }}">
+<tr id="album-{{ album.ratingKey }}" class="genre-editor">
   <td style="width:56px;">
     {% if album.thumbUrl %}
       <img class="thumb" src="{{ album.thumbUrl }}" alt="" width="44" height="44" loading="lazy">
@@ -7,34 +7,52 @@
       <div class="thumb" style="display:inline-block;"></div>
     {% endif %}
   </td>
-  <td>
-    <div class="artist">{{ album.parentTitle or '—' }}</div>
+  <td style="width: 250px">
+      <div class="artist">{{ album.parentTitle or '—' }}</div>
     <div class="album-title">{{ album.title }}</div>
     <div><a href="https://rateyourmusic.com/search?searchterm={{ ( (album.title or ''))|trim|urlencode }}&searchtype=l" target="_blank" rel="noopener noreferrer">Search</a></div>
+    <div><a href="https://rateyourmusic.com/search?searchterm={{ ((album.parentTitle or
+            ''))|trim|urlencode }}" target="_blank" rel="noopener noreferrer">Search
+            Artist</a></div>
+    <div>
+        <button class="secondary" 
+            hx-target="#album-{{ album.ratingKey }}"
+            hx-swap="outerHTML"
+            hx-get="/album/{{ album.ratingKey }}/lastfm"
+        >Load LastFM Tags</button>
+    </div>
   </td>
-  <td style="min-width: 280px;">
-    <div class="genre-editor">
+  <td>
       <div class="chip-row">
         <div class="chips" id="chips-{{ album.ratingKey }}" aria-label="Genres for {{ album.title }}">
           {% for tag in chip_tags %}
             <span class="chip" data-tag="{{ tag|e }}">{{ tag }} <button type="button" class="chip-x" aria-label="{{ ('Remove ' ~ tag)|e }}">×</button></span>
           {% endfor %}
         </div>
-        <div class="genre-add-row">
-          <input type="text" class="genre-add-input" list="rym-genre-list" value="" placeholder="Add genre…" aria-label="Add genre for {{ album.title }}">
-          <button type="button" class="genre-add-btn secondary">Add</button>
-        </div>
       </div>
+    <div class="genre-add-row">
+      <input type="text" class="genre-add-input" list="rym-genre-list" value="" placeholder="Add genre…" aria-label="Add genre for {{ album.title }}">
+      <button type="button" class="genre-add-btn secondary">Add</button>
+    </div>
+  </td>
+  <td style="width: 200px;">
       <form
         class="genre-form"
         hx-post="{{ url_for('update_genre', rating_key=album.ratingKey) }}"
         hx-target="#album-{{ album.ratingKey }}"
         hx-swap="outerHTML"
       >
+        <div style="min-width: 120px">
+            <input type="checkbox" name="titlecase_album" value="1"><label for="titlecase_album">Titlecase Album</label>
+        </div>
+        <div>
+            <input type="checkbox" name="titlecase_tracks" value="1"><label for="titlecase_tracks">Titlecase Tracks</label>
+        </div>
         <input type="hidden" name="genre" class="genre-hidden-input" value="{{ chip_tags|join(', ') }}">
-        <button type="submit">Save</button>
+        <div>
+            <button type="submit">Save</button>
+        </div>
       </form>
-    </div>
     {% if genre_unknown_note %}
       <div class="row-note">{{ genre_unknown_note }}</div>
     {% endif %}

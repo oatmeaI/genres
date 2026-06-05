@@ -41,7 +41,7 @@
     .genre-form { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
     .genre-form input:not([type="hidden"]) {
       flex: 1 1 140px;
-      min-width: 120px;
+      /* min-width: 120px; */
       padding: 0.45rem 0.55rem;
       border-radius: 6px;
       border: 1px solid var(--border);
@@ -60,8 +60,8 @@
     .genre-form button:hover { filter: brightness(1.08); }
     .genre-form.htmx-request button { opacity: 0.6; cursor: wait; }
     .genre-form input[type="hidden"] { display: none; }
-    .genre-editor { display: flex; flex-direction: column; gap: 0.55rem; }
-    .chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+    .genre-editor {}
+    .chip-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; padding: 5px 0; }
     .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; flex: 1 1 auto; min-height: 2rem; }
     .chip {
       display: inline-flex;
@@ -96,7 +96,7 @@
       background: #12151c;
       color: var(--text);
     }
-    button.genre-add-btn.secondary {
+    button.secondary {
       padding: 0.4rem 0.65rem;
       border-radius: 6px;
       border: 1px solid var(--border);
@@ -105,7 +105,7 @@
       font-weight: 500;
       cursor: pointer;
     }
-    button.genre-add-btn.secondary:hover { filter: brightness(1.06); }
+    button.secondary:hover { filter: brightness(1.06); }
     .row-error { color: var(--error); font-size: 0.82rem; margin-top: 0.35rem; }
     .row-note { color: #c9b87a; font-size: 0.82rem; margin-top: 0.35rem; }
     .toolbar {

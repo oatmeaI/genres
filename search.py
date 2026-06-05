@@ -130,7 +130,7 @@ class AlbumCache:
         self.album_sort = album_sort
 
     def preload_album(self, album):
-        album.genres  # hacky way to preload genres for the album
+        album.reload()  # hacky way to preload genres for the album
         return album.ratingKey, album
 
     def load(
@@ -205,7 +205,6 @@ class AlbumCache:
         per: int,
         exclude_single_tracks: bool,
     ) -> tuple[list, bool, bool]:
-
         # enable_requests_logging()
         start = (page - 1) * per
         all_album_list = sorted(

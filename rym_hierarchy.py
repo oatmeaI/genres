@@ -62,7 +62,7 @@ def load_nodes(path: Path) -> list[ResolvedNode]:
     return out
 
 
-def _resolve_one(name: str, nodes: list[ResolvedNode]) -> ResolvedNode | None:
+def resolve_one(name: str, nodes: list[ResolvedNode]) -> ResolvedNode | None:
     key = name.strip().casefold()
     if not key:
         return None
@@ -100,10 +100,10 @@ def expand_genre_picks(
         term = raw.strip()
         if not term:
             continue
-        node = _resolve_one(term, nodes)
+        node = resolve_one(term, nodes)
         if node is None:
             unknown.append(term)
-            add_label(term)
+            # add_label(term) # TODO: not sure if I wanna always exclude non-RYM genres
             continue
         for p in node.ancestors:
             if p in _SKIP_ANCESTOR_LABELS:

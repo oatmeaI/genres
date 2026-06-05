@@ -18,19 +18,19 @@ tree. Recognized names are expanded to include ancestor genres on the album; top
 from __future__ import annotations
 
 import logging
-
+from copy import copy
 from flask import Flask, abort, render_template, request
+from lastfm import get_album_tags
 from markupsafe import escape
 from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
-from plex import set_album_genres, set_tracks_genres
+from plex import set_album_genres, set_tracks_genres, titlecase_tracks
 from rym import get_rym_hierarchy
 from env import env
-from util import timer
+from util import form_bool, timer
 from plex_server import get_music_section
 from search import (
-    fetch_gap_page_slice,
     fetch_browse_page_slice,
     AlbumCache,
     album_has_rym_genre_gap,
@@ -61,6 +61,7 @@ def create_app() -> Flask:
         if rym is None:
             log.warning("Couldn't load RYM hiercharchy")
             abort(500)
+            return
 
         try:
             section = get_music_section()
@@ -164,6 +165,10 @@ def create_app() -> Flask:
             )
 
         timer.time("route")
+        for album in albums:
+            album.reload()
+            album.genres
+        get_album_tags(albums[0])
         return render_template(
             "index.html",
             section_title=section.title,
@@ -183,6 +188,25 @@ def create_app() -> Flask:
             error=None,
         )
 
+    @app.get("/album/<int:rating_key>/lastfm")
+    def lastfm(rating_key: int):
+        album = album_cache.get(rating_key)
+        if rym is None or album is None:
+            abort(500)
+            return
+
+        lastfm_tags = get_album_tags(album)
+        # print(album.genres)
+        _album = copy(album)
+        _album.genres = lastfm_tags
+        # print(album.genres)
+
+        return render_template(
+            "partial_album_row.html",
+            album=_album,
+            error=None,
+        )
+
     @app.post("/album/<int:rating_key>/genre")
     def update_genre(rating_key: int):
         genre = request.form.get("genre", "")
@@ -198,11 +222,11 @@ def create_app() -> Flask:
             album = album_cache.get(rating_key)
         except NotFound:
             abort(404)
-
-        rym = get_rym_hierarchy()
+            return
 
         if rym is None or album is None:
             abort(500)
+            return
 
         picks = [s.strip() for s in genre.split(",") if s.strip()]
         tags, unknown = expand_genre_picks(picks, rym.nodes)
@@ -220,6 +244,12 @@ def create_app() -> Flask:
             timer.time("reload album")
             album_cache.update(album)
             timer.time("reload album")
+
+            if form_bool(request, "titlecase_tracks"):
+                titlecase_tracks(album)
+
+            if form_bool(request, "titlecase_albums"):
+                titlecase_tracks(album)
 
             if bool(env("EDIT_TAGS", "")):
                 timer.time("file update")
