@@ -89,18 +89,30 @@ def build_datalist_inner_html(genres: list[GenreEntry]) -> str:
     return "\n".join(f'<option value="{html.escape(n)}">' for n in names)
 
 
-@cache
-def get_genres_yaml() -> GenresYaml | None:
-    """Load genres.yaml once. Returns None if the file is missing or invalid."""
+def _load_genres_yaml() -> GenresYaml | None:
     path = genres_yaml_path()
     try:
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
-    except OSError:
+    except OSError as e:
+        print(e)
         return None
-    except yaml.YAMLError:
+    except yaml.YAMLError as e:
+        print(e)
         return None
     genres = _parse_entries(data)
     return GenresYaml(
         genres=genres,
         datalist_inner_html=build_datalist_inner_html(genres),
     )
+
+
+@cache
+def get_genres_yaml() -> GenresYaml | None:
+    """Load genres.yaml once. Returns None if the file is missing or invalid."""
+    return _load_genres_yaml()
+
+
+def reload_genres_yaml() -> GenresYaml | None:
+    """Drop the cached genres.yaml and read it again from disk."""
+    get_genres_yaml.cache_clear()
+    return get_genres_yaml()

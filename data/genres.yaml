@@ -1,13 +1,80 @@
 ---
 genres:
-- name: "Stoner Doom"
-  examples: ["Electric Wizard", "Dopelord"]
-  related: ["Doom Metal"]
+- name: Stoner Sludge
+  examples: 
+    - Weedeater
+    - Dopethrone
+  related: 
+    - Sludge Metal
 
-- name: "Stoner Sludge"
-  examples: ["Weedeater", "Bongzilla", "Dopethrone"]
-  related: ["Sludge Metal"]
+- name: Stoner Doom
+  examples: 
+    - Electric Wizard
+    - Dopelord
+  related: 
+    - Doom Metal
 
-- name: "Doom Metal"
+- name: Swancore
+  examples: 
+    - Dance Gavin Dance
+    - Hail the Sun
+  related: 
+    - Post-Hardcore
 
-- name: "Pop Punk"
+- name: Post-Hardcore
+  examples: 
+  related: 
+
+- name: Scene Post-Hardcore
+  examples: 
+    - Saosin
+    - Silverstein
+  related: 
+    - Post-Hardcore
+
+- name: Black Metal
+  examples: 
+  related: 
+
+- name: Melodic Black Metal
+  examples: 
+    - Blackbraid
+  related: 
+    - Black Metal
+
+- name: Indie Emo 
+  examples: 
+    - Tigers Jaw
+    - Modern Baseball
+  related: 
+
+- name: Pop Punk 
+  examples: 
+  related: 
+
+- name: First Wave Pop Punk 
+  examples: 
+    - Green Day
+    - Blink-182
+  related: 
+    - Pop Punk
+
+- name: Second Wave Pop Punk 
+  examples: 
+    - All Time Low
+  related: 
+    - Pop Punk
+
+- name: Third Wave Pop Punk
+  examples: 
+    - Hot Mulligan
+  related: 
+    - Pop Punk
+
+- name: Fourth Wave Pop Punk
+  examples: 
+    - Stand Atlantic
+    - Waterparks
+    - People R Ugly
+  related: 
+    - Pop Punk

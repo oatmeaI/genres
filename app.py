@@ -26,7 +26,7 @@ from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
 from plex import set_album_genres, set_tracks_genres, titlecase_tracks
-from genres_yaml import GenresYaml, get_genres_yaml
+from genres_yaml import GenresYaml, get_genres_yaml, reload_genres_yaml
 from rym import RymHierarchy, get_rym_hierarchy
 from env import env
 from util import form_bool, timer
@@ -75,7 +75,6 @@ def create_app() -> Flask:
     @app.route("/")
     def index():
         timer.time("route")
-            return
 
         try:
             section = get_music_section()
@@ -83,9 +82,15 @@ def create_app() -> Flask:
             return render_template("error.html", message=str(e)), 503
 
         genre_src = resolve_genre_source(request.args.get("genre_src"))
+        genres_reloaded = False
+        if request.args.get("reload_genres") in ("1", "on", "true", "yes"):
+            reload_genres_yaml()
+            genres_reloaded = True
         hierarchy = get_genre_hierarchy(genre_src)
         if hierarchy is None:
-            label = "genres.yaml" if genre_src == GENRE_SOURCE_CUSTOM else "RYM hierarchy"
+            label = (
+                "genres.yaml" if genre_src == GENRE_SOURCE_CUSTOM else "RYM hierarchy"
+            )
             return render_template(
                 "error.html",
                 message=f"Could not load {label}.",
@@ -117,6 +122,9 @@ def create_app() -> Flask:
         start = (page - 1) * per
         album_sort = resolve_album_sort(request.args.get("sort"))
         plex_sort = plex_album_sort(album_sort)
+        if plex_sort != album_cache.album_sort:
+            album_cache.album_sort = plex_sort
+            album_cache.load(force=True)
         q = (request.args.get("q") or "").strip()
         hub_limit = 500
 
@@ -215,21 +223,20 @@ def create_app() -> Flask:
             library_album_total=library_album_total,
             scan_hit_cap=scan_hit_cap,
             filter_match_total=filter_match_total,
+            genres_reloaded=genres_reloaded,
             error=None,
         )
 
     @app.get("/album/<int:rating_key>/lastfm")
     def lastfm(rating_key: int):
         album = album_cache.get(rating_key)
-        if rym is None or album is None:
+        if album is None:
             abort(500)
             return
 
         lastfm_tags = get_album_tags(album)
-        # print(album.genres)
         _album = copy(album)
         _album.genres = lastfm_tags
-        # print(album.genres)
 
         return render_template(
             "partial_album_row.html",
@@ -253,6 +260,9 @@ def create_app() -> Flask:
         except NotFound:
             abort(404)
             return
+
+        genre_src = resolve_genre_source(request.form.get("genre_src"))
+        hierarchy = get_genre_hierarchy(genre_src)
 
         if hierarchy is None or album is None:
             abort(500)
@@ -306,9 +316,7 @@ def create_app() -> Flask:
         note = None
         if unknown:
             label = (
-                "genres.yaml"
-                if genre_src == GENRE_SOURCE_CUSTOM
-                else "RYM hierarchy"
+                "genres.yaml" if genre_src == GENRE_SOURCE_CUSTOM else "RYM hierarchy"
             )
             note = f"Not in {label} (saved as typed): " + ", ".join(unknown)
 

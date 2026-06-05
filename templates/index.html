@@ -6,6 +6,9 @@
   {% if error %}
     <div class="banner error">{{ error }}</div>
   {% endif %}
+  {% if genres_reloaded %}
+    <div class="banner">Reloaded <code>genres.yaml</code> from disk.</div>
+  {% endif %}
   {% if gap_unavailable %}
     <div class="banner warn">The genre-gap filter needs the selected genre list to be loaded. Filter was ignored for this request.</div>
   {% endif %}
@@ -17,6 +20,7 @@
         <option value="rym" {% if genre_src == 'rym' %}selected{% endif %}>RateYourMusic</option>
         <option value="custom" {% if genre_src == 'custom' %}selected{% endif %}>genres.yaml</option>
       </select>
+      <button type="submit" name="reload_genres" value="1" class="secondary">Reload genres.yaml</button>
     </label>
     <label>
       Sort by

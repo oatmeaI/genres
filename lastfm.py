@@ -21,7 +21,6 @@ def get_album_tags(album):
     if rym is None:
         return
     tags = content["toptags"]["tag"]
-    print(tags)
     tag_names = []
     for tag in tags:
         tag_names.append(tag["name"])
@@ -29,5 +28,4 @@ def get_album_tags(album):
     rym_tags = []
     for genre in rym_genres:
         rym_tags.append({"tag": genre})
-    print(rym_tags)
     return rym_tags
