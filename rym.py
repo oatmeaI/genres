@@ -4,6 +4,7 @@ from env import env
 from dataclasses import dataclass
 from rym_hierarchy import (
     build_datalist_inner_html,
+    build_genre_hints_json,
     expand_genre_picks,
     load_nodes,
     rym_genre_names_casefold,
@@ -14,6 +15,7 @@ from rym_hierarchy import (
 class RymHierarchy:
     nodes: list
     datalist_inner_html: str
+    genre_hints_json: str
 
     def expand_picks(self, picks: list[str]) -> tuple[list[str], list[str]]:
         return expand_genre_picks(picks, self.nodes)
@@ -45,7 +47,9 @@ def get_rym_hierarchy() -> RymHierarchy | None:
     try:
         nodes = load_nodes(path)
         _rym = RymHierarchy(
-            nodes=nodes, datalist_inner_html=build_datalist_inner_html(nodes)
+            nodes=nodes,
+            datalist_inner_html=build_datalist_inner_html(nodes),
+            genre_hints_json=build_genre_hints_json(nodes),
         )
         return _rym
     except OSError as e:

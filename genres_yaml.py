@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
@@ -23,6 +24,7 @@ class GenreEntry:
 class GenresYaml:
     genres: list[GenreEntry]
     datalist_inner_html: str
+    genre_hints_json: str
 
     def expand_picks(self, picks: list[str]) -> tuple[list[str], list[str]]:
         """Return Plex genre strings; each recognized pick adds its ``related`` genres first."""
@@ -89,6 +91,14 @@ def build_datalist_inner_html(genres: list[GenreEntry]) -> str:
     return "\n".join(f'<option value="{html.escape(n)}">' for n in names)
 
 
+def build_genre_hints_json(genres: list[GenreEntry]) -> str:
+    hints = [
+        {"name": g.name, "examples": list(g.examples)}
+        for g in sorted(genres, key=lambda g: g.name.casefold())
+    ]
+    return json.dumps(hints, ensure_ascii=False)
+
+
 def _load_genres_yaml() -> GenresYaml | None:
     path = genres_yaml_path()
     try:
@@ -103,6 +113,7 @@ def _load_genres_yaml() -> GenresYaml | None:
     return GenresYaml(
         genres=genres,
         datalist_inner_html=build_datalist_inner_html(genres),
+        genre_hints_json=build_genre_hints_json(genres),
     )
 
 
@@ -116,3 +127,57 @@ def reload_genres_yaml() -> GenresYaml | None:
     """Drop the cached genres.yaml and read it again from disk."""
     get_genres_yaml.cache_clear()
     return get_genres_yaml()
+
+
+def parse_genre_list_field(raw: str) -> list[str]:
+    """Split a form field on commas or newlines."""
+    items: list[str] = []
+    seen: set[str] = set()
+    for line in raw.replace(",", "\n").splitlines():
+        value = line.strip()
+        if not value:
+            continue
+        key = value.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(value)
+    return items
+
+
+def _yaml_scalar(value: str) -> str:
+    if value and all(c.isalnum() or c in " -'" for c in value):
+        return value
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
+def format_genres_yaml(genres: list[GenreEntry]) -> str:
+    lines = ["---", "genres:"]
+    for genre in genres:
+        lines.append(f"- name: {_yaml_scalar(genre.name)}")
+        lines.append("  examples: ")
+        for example in genre.examples:
+            lines.append(f"    - {_yaml_scalar(example)}")
+        lines.append("  related: ")
+        for related in genre.related:
+            lines.append(f"    - {_yaml_scalar(related)}")
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def add_genre_entry(entry: GenreEntry) -> None:
+    """Append a genre to genres.yaml on disk."""
+    if not entry.name.strip():
+        raise ValueError("Genre name is required.")
+
+    current = _load_genres_yaml()
+    genres = list(current.genres) if current else []
+    if any(g.name.casefold() == entry.name.casefold() for g in genres):
+        raise ValueError(f'Genre already exists: {entry.name}')
+
+    genres.append(entry)
+    path = genres_yaml_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(format_genres_yaml(genres), encoding="utf-8")
+    reload_genres_yaml()

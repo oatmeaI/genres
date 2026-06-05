@@ -19,14 +19,21 @@ from __future__ import annotations
 
 import logging
 from copy import copy
-from flask import Flask, abort, render_template, request
+from flask import Flask, abort, redirect, render_template, request, url_for
 from lastfm import get_album_tags
 from markupsafe import escape
 from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
 from plex import set_album_genres, set_tracks_genres, titlecase_tracks
-from genres_yaml import GenresYaml, get_genres_yaml, reload_genres_yaml
+from genres_yaml import (
+    GenreEntry,
+    GenresYaml,
+    add_genre_entry,
+    get_genres_yaml,
+    parse_genre_list_field,
+    reload_genres_yaml,
+)
 from rym import RymHierarchy, get_rym_hierarchy
 from env import env
 from util import form_bool, timer
@@ -68,9 +75,43 @@ def create_app() -> Flask:
         src = resolve_genre_source(request.args.get("genre_src") if request else None)
         hierarchy = get_genre_hierarchy(src)
         return {
-            "genre_options_html": hierarchy.datalist_inner_html if hierarchy else "",
+            "genre_hints_json": hierarchy.genre_hints_json if hierarchy else "[]",
             "genre_src": src,
         }
+
+    @app.post("/genres")
+    def create_genre():
+        name = (request.form.get("name") or "").strip()
+        examples = parse_genre_list_field(request.form.get("examples") or "")
+        related = parse_genre_list_field(request.form.get("related") or "")
+
+        try:
+            add_genre_entry(GenreEntry(name=name, examples=tuple(examples), related=tuple(related)))
+        except ValueError as e:
+            return redirect(
+                url_for(
+                    "index",
+                    genre_src=GENRE_SOURCE_CUSTOM,
+                    genre_create_error=str(e),
+                )
+            )
+        except OSError as e:
+            log.exception("Failed to write genres.yaml")
+            return redirect(
+                url_for(
+                    "index",
+                    genre_src=GENRE_SOURCE_CUSTOM,
+                    genre_create_error=f"Could not write genres.yaml: {e}",
+                )
+            )
+
+        return redirect(
+            url_for(
+                "index",
+                genre_src=GENRE_SOURCE_CUSTOM,
+                genre_added=name,
+            )
+        )
 
     @app.route("/")
     def index():
@@ -224,6 +265,8 @@ def create_app() -> Flask:
             scan_hit_cap=scan_hit_cap,
             filter_match_total=filter_match_total,
             genres_reloaded=genres_reloaded,
+            genre_added=request.args.get("genre_added"),
+            genre_create_error=request.args.get("genre_create_error"),
             error=None,
         )
 

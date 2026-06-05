@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -116,6 +117,11 @@ def expand_genre_picks(
 def build_datalist_inner_html(nodes: list[ResolvedNode]) -> str:
     names = sorted({n.display for n in nodes}, key=str.casefold)
     return "\n".join(f'<option value="{html.escape(n)}">' for n in names)
+
+
+def build_genre_hints_json(nodes: list[ResolvedNode]) -> str:
+    names = sorted({n.display for n in nodes}, key=str.casefold)
+    return json.dumps([{"name": n, "examples": []} for n in names], ensure_ascii=False)
 
 
 def rym_genre_names_casefold(nodes: list[ResolvedNode]) -> set[str]:

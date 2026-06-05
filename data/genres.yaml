@@ -42,24 +42,24 @@ genres:
   related: 
     - Black Metal
 
-- name: Indie Emo 
+- name: Indie Emo
   examples: 
     - Tigers Jaw
     - Modern Baseball
   related: 
 
-- name: Pop Punk 
+- name: Pop Punk
   examples: 
   related: 
 
-- name: First Wave Pop Punk 
+- name: First Wave Pop Punk
   examples: 
     - Green Day
     - Blink-182
   related: 
     - Pop Punk
 
-- name: Second Wave Pop Punk 
+- name: Second Wave Pop Punk
   examples: 
     - All Time Low
   related: 
@@ -78,3 +78,19 @@ genres:
     - People R Ugly
   related: 
     - Pop Punk
+
+- name: Easycore
+  examples: 
+    - A Day to Remember
+  related: 
+    - Pop Punk
+
+- name: Heartland Rock
+  examples: 
+    - The Gaslight Anthem
+    - Bruce Springsteen
+  related: 
+
+- name: Punk Rock
+  examples: 
+  related:

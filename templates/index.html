@@ -9,6 +9,12 @@
   {% if genres_reloaded %}
     <div class="banner">Reloaded <code>genres.yaml</code> from disk.</div>
   {% endif %}
+  {% if genre_added %}
+    <div class="banner">Added <strong>{{ genre_added }}</strong> to <code>genres.yaml</code>.</div>
+  {% endif %}
+  {% if genre_create_error %}
+    <div class="banner error">{{ genre_create_error }}</div>
+  {% endif %}
   {% if gap_unavailable %}
     <div class="banner warn">The genre-gap filter needs the selected genre list to be loaded. Filter was ignored for this request.</div>
   {% endif %}
@@ -46,11 +52,32 @@
       <input type="checkbox" name="reload" value="1">
       Force reload
     </label>
-    <button type="submit">Apply</button>
-    {% if q or rym_gaps or exclude_single_tracks or genre_src != 'rym' or album_sort != 'played' %}
-      <a class="btn-link secondary" href="{{ url_for('index') }}" style="text-decoration:none;display:inline-block;">Clear all</a>
-    {% endif %}
+    <div class="toolbar-actions">
+      <button type="submit">Apply</button>
+      {% if q or rym_gaps or exclude_single_tracks or genre_src != 'rym' or album_sort != 'played' %}
+        <a class="btn-link secondary toolbar-clear" href="{{ url_for('index') }}">Clear all</a>
+      {% endif %}
+    </div>
     <input type="hidden" name="page" value="1">
+  </form>
+
+  <form class="toolbar genre-create" method="post" action="{{ url_for('create_genre') }}">
+    <p class="genre-create-heading">Add genre to <code>genres.yaml</code></p>
+    <label>
+      Name
+      <input type="text" name="name" required placeholder="e.g. Stoner Doom">
+    </label>
+    <label>
+      Examples
+      <input type="text" name="examples" placeholder="Artists, comma-separated">
+    </label>
+    <label>
+      Related genres
+      <input type="text" name="related" class="genre-autocomplete" placeholder="Parent genres, comma-separated" autocomplete="off">
+    </label>
+    <div class="toolbar-actions">
+      <button type="submit">Add genre</button>
+    </div>
   </form>
 
   <p class="album-stats">
@@ -90,13 +117,13 @@
   </p>
 
   {% if albums %}
-    <table>
+    <table class="album-table">
       <thead>
         <tr>
-          <th></th>
-          <th>Artist / album</th>
-          <th>Genre</th>
-          <th></th>
+          <th scope="col"></th>
+          <th scope="col">Artist / album</th>
+          <th scope="col">Genre</th>
+          <th scope="col">Save</th>
         </tr>
       </thead>
       <tbody>
