@@ -1,0 +1,16 @@
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  margin-bottom: 0.65rem;
+  font-size: 0.88rem;
+}
+
+.site-nav a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.site-nav a:hover {
+  text-decoration: underline;
+}

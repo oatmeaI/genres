@@ -1,0 +1,163 @@
+.genre-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.genre-form input:not([type="hidden"]) {
+  flex: 1 1 140px;
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #12151c;
+  color: var(--text);
+}
+
+.genre-form button {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: #0a0e14;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.genre-form button:hover {
+  filter: brightness(1.08);
+}
+
+.genre-form.htmx-request button {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.genre-form input[type="hidden"] {
+  display: none;
+}
+
+button.secondary {
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #252a38;
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+button.secondary:hover {
+  filter: brightness(1.06);
+}
+
+.toolbar {
+  gap: 0.65rem;
+  align-items: flex-end;
+  margin-top: 0.5rem;
+}
+
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.toolbar select,
+.toolbar input[type="search"],
+.toolbar input[type="text"] {
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #12151c;
+  color: var(--text);
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.toolbar input[type="search"] {
+  min-width: 12rem;
+}
+
+.toolbar button,
+.toolbar-clear {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #252a38;
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.toolbar-check {
+  max-width: 180px;
+  margin: 5px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.toolbar-check input {
+  width: auto;
+  cursor: pointer;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  margin-bottom: 0.35rem;
+}
+
+.form-check input {
+  width: auto;
+  min-width: 1rem;
+  min-height: 1rem;
+  cursor: pointer;
+}
+
+.save-btn {
+  min-height: 2.5rem;
+}
+
+button.danger,
+.genre-delete-form button {
+  padding: 0.45rem 0.85rem;
+  border-radius: 6px;
+  border: 1px solid #5a3030;
+  background: #2a1a1a;
+  color: var(--error);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+button.danger:hover,
+.genre-delete-form button:hover {
+  filter: brightness(1.08);
+}

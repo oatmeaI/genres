@@ -1,0 +1,117 @@
+.thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #252a38;
+}
+
+.thumb-placeholder {
+  display: inline-block;
+}
+
+.artist {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.album-title {
+  font-weight: 600;
+}
+
+.album-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin: 0.35rem 0;
+  font-size: 0.85rem;
+}
+
+.album-links a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.album-links a:hover {
+  text-decoration: underline;
+}
+
+.album-lastfm-btn {
+  margin-top: 0.35rem;
+}
+
+.album-table {
+  margin-top: 1rem;
+}
+
+.album-stats {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0.65rem 0 0.35rem;
+  line-height: 1.5;
+}
+
+.album-stats .stat-tag {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.genre-create {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.genre-create-heading {
+  margin: 0 0 0.5rem;
+  width: 100%;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.genre-create input[type="text"] {
+  min-width: 0;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #12151c;
+  color: var(--text);
+}
+
+.pager {
+  margin-top: 1.25rem;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  color: var(--muted);
+}
+
+.pager a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.pager a:hover {
+  text-decoration: underline;
+}
+
+.banner {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.banner.error {
+  background: #2a1a1a;
+  border: 1px solid #5a3030;
+  color: var(--error);
+}
+
+.banner.warn {
+  background: #2a2618;
+  border: 1px solid #5a5230;
+  color: #e8d9a8;
+}

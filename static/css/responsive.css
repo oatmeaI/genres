@@ -1,0 +1,170 @@
+@media (max-width: 720px) {
+  header {
+    padding: 1rem;
+  }
+
+  header h1 {
+    font-size: 1.2rem;
+  }
+
+  header p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  main {
+    padding: 1rem 0.85rem 2rem;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 16px;
+  }
+
+  .toolbar,
+  .genre-create {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar label,
+  .genre-create label,
+  .toolbar-check {
+    width: 100%;
+  }
+
+  .toolbar-check {
+    min-height: 2.75rem;
+    padding: 0.15rem 0;
+  }
+
+  .toolbar-actions {
+    width: 100%;
+  }
+
+  .toolbar-actions button,
+  .toolbar-actions .toolbar-clear {
+    flex: 1 1 auto;
+  }
+
+  .toolbar input[type="search"] {
+    min-width: 0;
+  }
+
+  .album-stats {
+    font-size: 0.85rem;
+  }
+
+  .pager {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+
+  .pager a {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .album-table thead {
+    display: none;
+  }
+
+  .album-table,
+  .album-table tbody,
+  .album-table tr,
+  .album-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .album-table tr.album-row {
+    margin-bottom: 1rem;
+    padding: 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+
+  .album-table td {
+    border: none;
+    padding: 0;
+  }
+
+  .album-table td + td {
+    margin-top: 0.75rem;
+  }
+
+  .album-table td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+
+  .album-cell-thumb {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 0.25rem;
+  }
+
+  .album-cell-thumb::before {
+    display: none !important;
+  }
+
+  .album-cell-info .album-title {
+    font-size: 1.05rem;
+  }
+
+  .genre-add-row {
+    width: 100%;
+  }
+
+  .genre-add-input {
+    flex: 1 1 auto;
+  }
+
+  .genre-add-btn,
+  .album-lastfm-btn,
+  .save-btn,
+  .chip-x {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .save-btn {
+    width: 100%;
+  }
+
+  .chip-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+  }
+
+  .genre-autocomplete-examples {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+}
+
+@media (min-width: 721px) {
+  .album-cell-info {
+    width: 250px;
+    max-width: 30vw;
+  }
+
+  .album-cell-actions {
+    width: 200px;
+  }
+}

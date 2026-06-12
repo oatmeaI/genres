@@ -1,4 +1,5 @@
 {% set chip_tags = chip_tags if chip_tags is defined else ((album.genres or [])|map(attribute='tag')|list) %}
+
 <tr id="album-{{ album.ratingKey }}" class="genre-editor album-row">
   <td class="album-cell-thumb" data-label="">
     {% if album.thumbUrl %}
@@ -7,13 +8,24 @@
       <div class="thumb thumb-placeholder" aria-hidden="true"></div>
     {% endif %}
   </td>
+
   <td class="album-cell-info" data-label="Artist / album">
     <div class="artist">{{ album.parentTitle or '—' }}</div>
     <div class="album-title">{{ album.title }}</div>
+
     <div class="album-links">
-      <a href="https://rateyourmusic.com/search?searchterm={{ ((album.title or ''))|trim|urlencode }}&searchtype=l" target="_blank" rel="noopener noreferrer">Search album</a>
-      <a href="https://rateyourmusic.com/search?searchterm={{ ((album.parentTitle or ''))|trim|urlencode }}" target="_blank" rel="noopener noreferrer">Search artist</a>
+      <a
+        href="https://rateyourmusic.com/search?searchterm={{ ((album.title or ''))|trim|urlencode }}&searchtype=l"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Search album</a>
+      <a
+        href="https://rateyourmusic.com/search?searchterm={{ ((album.parentTitle or ''))|trim|urlencode }}"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Search artist</a>
     </div>
+
     <button
       type="button"
       class="secondary album-lastfm-btn"
@@ -22,19 +34,33 @@
       hx-get="/album/{{ album.ratingKey }}/lastfm"
     >Load LastFM tags</button>
   </td>
+
   <td class="album-cell-genres" data-label="Genre">
     <div class="chip-row">
       <div class="chips" id="chips-{{ album.ratingKey }}" aria-label="Genres for {{ album.title }}">
         {% for tag in chip_tags %}
-          <span class="chip" data-tag="{{ tag|e }}">{{ tag }} <button type="button" class="chip-x" aria-label="{{ ('Remove ' ~ tag)|e }}">×</button></span>
+          <span class="chip" data-tag="{{ tag|e }}">
+            {{ tag }}
+            <button type="button" class="chip-x" aria-label="{{ ('Remove ' ~ tag)|e }}">×</button>
+          </span>
         {% endfor %}
       </div>
     </div>
+
     <div class="genre-add-row">
-      <input type="text" class="genre-add-input genre-autocomplete" value="" placeholder="Add genre…" aria-label="Add genre for {{ album.title }}" autocomplete="off" enterkeyhint="done">
+      <input
+        type="text"
+        class="genre-add-input genre-autocomplete"
+        value=""
+        placeholder="Add genre…"
+        aria-label="Add genre for {{ album.title }}"
+        autocomplete="off"
+        enterkeyhint="done"
+      >
       <button type="button" class="genre-add-btn secondary">Add</button>
     </div>
   </td>
+
   <td class="album-cell-actions" data-label="Save">
     <form
       class="genre-form"
@@ -54,9 +80,11 @@
       <input type="hidden" name="genre_src" value="{{ genre_src|default('rym') }}">
       <button type="submit" class="save-btn">Save</button>
     </form>
+
     {% if genre_unknown_note %}
       <div class="row-note">{{ genre_unknown_note }}</div>
     {% endif %}
+
     {% if error %}
       <div class="row-error">{{ error }}</div>
     {% endif %}

@@ -1,10 +1,16 @@
 {% extends "base.html" %}
+
 {% block title %}Configuration error{% endblock %}
 {% block heading %}Cannot reach Plex{% endblock %}
-{% block subheading %}<p>{{ message }}</p>{% endblock %}
+
+{% block subheading %}
+  <p>{{ message }}</p>
+{% endblock %}
+
 {% block body %}
   <p class="banner error">{{ message }}</p>
-  <p style="color: var(--muted); font-size: 0.9rem;">
-    Set <code>PLEX_URL</code> and <code>PLEX_TOKEN</code>. Optionally set <code>PLEX_SECTION</code> to the exact music library name.
+  <p class="text-muted-sm">
+    Set <code>PLEX_URL</code> and <code>PLEX_TOKEN</code>.
+    Optionally set <code>PLEX_SECTION</code> to the exact music library name.
   </p>
 {% endblock %}

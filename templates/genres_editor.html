@@ -1,9 +1,16 @@
 {% extends "base.html" %}
+
 {% block title %}Edit genres.yaml{% endblock %}
 {% block heading %}Edit genres.yaml{% endblock %}
+
 {% block subheading %}
-  <p>File: <code>{{ file_path }}</code> · <span id="genre-editor-count">{{ genres|length }} genre{{ 's' if genres|length != 1 else '' }}</span> · Changes are written to disk immediately.</p>
+  <p>
+    File: <code>{{ file_path }}</code>
+    · <span id="genre-editor-count">{{ genres|length }} genre{{ 's' if genres|length != 1 else '' }}</span>
+    · Changes are written to disk immediately.
+  </p>
 {% endblock %}
+
 {% block body %}
   <div id="genre-editor-flash">
     {% if error %}
@@ -48,18 +55,28 @@
     hx-on::after-request="if (event.detail.successful) this.reset()"
   >
     <p class="genre-create-heading">Add genre</p>
+
     <label>
       Name
       <input type="text" name="name" required placeholder="e.g. Stoner Doom" autocomplete="off">
     </label>
+
     <label>
       Examples
       <input type="text" name="examples" placeholder="Artists, comma-separated" autocomplete="off">
     </label>
+
     <label>
       Related genres
-      <input type="text" name="related" class="genre-autocomplete" placeholder="Parent genres, comma-separated" autocomplete="off">
+      <input
+        type="text"
+        name="related"
+        class="genre-autocomplete"
+        placeholder="Parent genres, comma-separated"
+        autocomplete="off"
+      >
     </label>
+
     <div class="toolbar-actions">
       <button type="submit">Add genre</button>
     </div>

@@ -1,0 +1,74 @@
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 5px 0;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  flex: 1 1 auto;
+  min-height: 2rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.45rem 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #252a38;
+  border: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+
+.chip-x {
+  margin: 0;
+  padding: 0 0.15rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.chip-x:hover {
+  color: var(--text);
+  background: #3a4154;
+}
+
+.genre-add-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.genre-add-input {
+  flex: 1 1 120px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #12151c;
+  color: var(--text);
+}
+
+.row-error {
+  color: var(--error);
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
+
+.row-note {
+  color: #c9b87a;
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
