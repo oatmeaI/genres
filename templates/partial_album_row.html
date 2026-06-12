@@ -31,7 +31,7 @@
       class="secondary album-lastfm-btn"
       hx-target="#album-{{ album.ratingKey }}"
       hx-swap="outerHTML"
-      hx-get="/album/{{ album.ratingKey }}/lastfm"
+      hx-get="/album/{{ album.ratingKey }}/lastfm?genre_src={{ genre_src|default('custom') }}"
     >Load LastFM tags</button>
   </td>
 
@@ -39,7 +39,7 @@
     <div class="chip-row">
       <div class="chips" id="chips-{{ album.ratingKey }}" aria-label="Genres for {{ album.title }}">
         {% for tag in chip_tags %}
-          <span class="chip" data-tag="{{ tag|e }}">
+          <span class="chip{% if tag.casefold() not in hierarchy_known_cf %} chip-outside{% endif %}" data-tag="{{ tag|e }}">
             {{ tag }}
             <button type="button" class="chip-x" aria-label="{{ ('Remove ' ~ tag)|e }}">×</button>
           </span>

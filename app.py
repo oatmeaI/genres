@@ -63,6 +63,12 @@ def resolve_genre_source(value: str | None) -> str:
     return GENRE_SOURCE_RYM if value == GENRE_SOURCE_RYM else GENRE_SOURCE_CUSTOM
 
 
+def request_genre_src() -> str | None:
+    if not request:
+        return None
+    return request.args.get("genre_src") or request.form.get("genre_src")
+
+
 def get_genre_hierarchy(source: str) -> RymHierarchy | GenresYaml | None:
     if source == GENRE_SOURCE_CUSTOM:
         return get_genres_yaml()
@@ -118,11 +124,14 @@ def create_app() -> Flask:
             hierarchy = get_genres_yaml()
             src = GENRE_SOURCE_CUSTOM
         else:
-            src = resolve_genre_source(request.args.get("genre_src") if request else None)
+            src = resolve_genre_source(request_genre_src())
             hierarchy = get_genre_hierarchy(src)
         return {
             "genre_hints_json": hierarchy.genre_hints_json if hierarchy else "[]",
             "genre_src": src,
+            "hierarchy_known_cf": (
+                hierarchy.known_names_casefold() if hierarchy else frozenset()
+            ),
         }
 
     @app.get("/genres/editor")

@@ -26,6 +26,21 @@
   font-size: 0.82rem;
 }
 
+.chip.chip-outside {
+  background: #3d2912;
+  border-color: #e8922a;
+  color: #f5c070;
+}
+
+.chip.chip-outside .chip-x {
+  color: #e8922a;
+}
+
+.chip.chip-outside .chip-x:hover {
+  color: #fde0b0;
+  background: rgba(232, 146, 42, 0.25);
+}
+
 .chip-x {
   margin: 0;
   padding: 0 0.15rem;

@@ -1,4 +1,36 @@
 (function () {
+  var knownGenreNamesLower = [];
+
+  function reloadKnownGenreNames() {
+    try {
+      var hintsEl = document.getElementById('genre-hints');
+      if (!hintsEl) {
+        knownGenreNamesLower = [];
+        return;
+      }
+      knownGenreNamesLower = JSON.parse(hintsEl.textContent || '[]').map(function (hint) {
+        return hint.name.toLowerCase();
+      });
+    } catch (err) {
+      knownGenreNamesLower = [];
+    }
+  }
+
+  function isOutsideHierarchy(tag) {
+    return knownGenreNamesLower.indexOf(tag.toLowerCase()) === -1;
+  }
+
+  function chipClassName(tag) {
+    return 'chip' + (isOutsideHierarchy(tag) ? ' chip-outside' : '');
+  }
+
+  reloadKnownGenreNames();
+
+  document.body.addEventListener('htmx:oobAfterSwap', function (evt) {
+    var target = evt.detail && evt.detail.target;
+    if (target && target.id === 'genre-hints') reloadKnownGenreNames();
+  });
+
   function editorRoot(el) {
     return el && el.closest ? el.closest('.genre-editor') : null;
   }
@@ -33,7 +65,7 @@
     if (dup) return;
 
     var span = document.createElement('span');
-    span.className = 'chip';
+    span.className = chipClassName(tag);
     span.setAttribute('data-tag', tag);
     span.appendChild(document.createTextNode(tag + ' '));
 
