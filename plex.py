@@ -1,6 +1,47 @@
-from env import env, flag
+from env import env
 from titlecase import titlecase
 import requests
+
+
+def remove_album_genre(album, genre, section):
+    album.batchEdits()
+
+    edits = {}
+    edits["genre.locked"] = 1
+    edits["style.locked"] = 1
+
+    if len(album.genres) > 0:
+        edits["genre[].tag.tag-"] = genre
+
+    if len(album.styles) > 0:
+        edits["style[].tag.tag-"] = genre
+
+    album.edit(**edits)
+    album.saveEdits()
+
+
+def remove_tracks_genre(album, genre, section):
+    tracks = album.tracks()
+
+    # We're going rogue here, because Python-PlexAPI doesn't seem to support this.
+    params = {
+        "type": 10,
+        "id": ",".join([f"{t.ratingKey}" for t in tracks]),
+        "genre.locked": 1,
+        "style.locked": 1,
+        "X-Plex-Token": env("PLEX_TOKEN"),
+    }
+
+    for track in tracks:
+        if len(track.genres) > 0:
+            params["genre[].tag.tag-"] = genre
+
+    url = f"{env('PLEX_URL')}/library/sections/{section.key}/all"
+    response = requests.put(url, params=params)
+    if response.status_code == 200:
+        print("Processed Plex tracks")
+    else:
+        print(f"Request failed with status code: {response.status_code}")
 
 
 def set_tracks_genres(album, tags, section):

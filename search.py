@@ -39,10 +39,12 @@ def sort_albums(albums: list, sort_mode: str) -> list:
     return sorted(albums, key=lambda a: album_sort_key(a, sort_mode), reverse=True)
 
 
-def album_has_rym_genre_gap(album, rym_cf: set[str]) -> bool:
+def album_has_rym_genre_gap(album, rym_cf: set[str], genre_gap: bool) -> bool:
+    if not genre_gap:
+        return True
     genres = album.genres or []
     if not genres:
-        return True
+        return False
     return any(g.tag.casefold() not in rym_cf for g in genres)
 
 
@@ -50,55 +52,6 @@ def passes_multi_track_filter(album, exclude_single_tracks: bool) -> bool:
     if not exclude_single_tracks:
         return True
     return album.leafCount > 1
-
-
-def fetch_gap_page_slice(
-    section: MusicSection,
-    album_sort: str,
-    rym_cf: set[str],
-    page: int,
-    per: int,
-    exclude_single_tracks: bool,
-    *,
-    chunk: int = 50,
-    max_scan: int = 500_000,
-) -> tuple[list, bool, bool]:
-    """First-page-friendly scan: collect matches until ``page * per + 1`` or library / cap ends."""
-    need = page * per + 1
-    matches: list = []
-    container_start = 0
-    scanned = 0
-    while len(matches) < need and scanned < max_scan:
-        batch = section.search(
-            libtype="album",
-            sort=album_sort,
-            maxresults=chunk,
-            container_start=container_start,
-        )
-        if not batch:
-            break
-
-        for album in batch:
-            scanned += 1
-            album.reload()
-            has_gap = album_has_rym_genre_gap(album, rym_cf)
-            multitrack = passes_multi_track_filter(album, exclude_single_tracks)
-            if has_gap and multitrack:
-                matches.append(album)
-                if len(matches) >= need:
-                    break
-        container_start += len(batch)
-        if len(matches) >= need:
-            break
-        if scanned >= max_scan:
-            break
-        if len(batch) < chunk:
-            break
-    start_idx = (page - 1) * per
-    page_albums = matches[start_idx : start_idx + per]
-    has_next = len(matches) > page * per
-    hit_cap = scanned >= max_scan
-    return page_albums, has_next, hit_cap
 
 
 def fetch_browse_page_slice(
@@ -155,6 +108,24 @@ def fetch_browse_page_slice(
     return page_albums, has_next, hit_cap
 
 
+def filter_no_genres(album, no_genre):
+    if not no_genre:
+        return True
+    return len(album.genres) < 1
+
+
+def filter_unplayed(album, played_albums):
+    if not played_albums:
+        return True
+    return album.viewCount > 0
+
+
+def filter_by_query(album, q):
+    if len(q) < 1:
+        return True
+    return q in album.title or q in album.parentTitle
+
+
 class AlbumCache:
     albums = {}
     loaded = False
@@ -166,6 +137,9 @@ class AlbumCache:
     def preload_album(self, album):
         album.reload()  # hacky way to preload genres for the album
         return album.ratingKey, album
+
+    def size(self):
+        return len(list(self.albums.values()))
 
     def load(
         self,
@@ -232,22 +206,29 @@ class AlbumCache:
         album.reload()
         self.albums[album.ratingKey] = album
 
-    def fetch_gap_page_slice(
+    def fetch_page(
         self,
         rym_cf: set[str],
         page: int,
         per: int,
         exclude_single_tracks: bool,
         sort_mode: str = DEFAULT_ALBUM_SORT,
-    ) -> tuple[list, bool, bool]:
+        genre_gap: bool = False,
+        no_genre: bool = False,
+        played_albums: bool = False,
+        q: str = "",
+    ) -> tuple[list, bool, int]:
         # enable_requests_logging()
         start = (page - 1) * per
         all_album_list = sort_albums(
             list(
                 filter(
                     lambda x: (
-                        album_has_rym_genre_gap(x, rym_cf)
+                        album_has_rym_genre_gap(x, rym_cf, genre_gap)
                         and passes_multi_track_filter(x, exclude_single_tracks)
+                        and filter_by_query(x, q)
+                        and filter_unplayed(x, played_albums)
+                        and filter_no_genres(x, no_genre)
                     ),
                     list(self.albums.values()),
                 )
@@ -257,8 +238,27 @@ class AlbumCache:
         album_list = all_album_list[start : start + per]
         has_next = start + per < len(all_album_list)
 
-        hit_cap = False  # TODO deprecate
-        return album_list, has_next, hit_cap
+        return album_list, has_next, len(all_album_list)
+
+    def find_by_genre(self, genre: str):
+        albums = []
+        genre = genre.casefold()
+        for album in self.albums.values():
+            genres = [g.tag.casefold() for g in album.genres]
+            if genre in genres:
+                albums.append(album)
+        return albums
+        return list(
+            filter(
+                lambda album: (
+                    any(
+                        album_genre.tag.casefold() == genre
+                        for album_genre in (album.genres or [])
+                    )
+                ),
+                list(self.albums.values()),
+            )
+        )
 
     def fetch_all_gap_matches(
         self,
@@ -268,7 +268,7 @@ class AlbumCache:
         matches: list = []
         for _, key in enumerate(self.albums):
             album = self.albums[key]
-            has_gap = album_has_rym_genre_gap(album, rym_cf)
+            has_gap = album_has_rym_genre_gap(album, rym_cf, genre_gap=True)
             multitrack = passes_multi_track_filter(album, exclude_single_tracks)
             if has_gap and multitrack:
                 matches.append(album)

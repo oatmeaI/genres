@@ -12,6 +12,9 @@
   {% if genre_added %}
     <div class="banner">Added <strong>{{ genre_added }}</strong> to <code>genres.yaml</code>.</div>
   {% endif %}
+  {% if genre_deleted %}
+    <div class="banner">Removed <strong>{{ genre_deleted }}</strong> from all tracks.</div>
+  {% endif %}
   {% if genre_create_error %}
     <div class="banner error">{{ genre_create_error }}</div>
   {% endif %}
@@ -26,8 +29,8 @@
         <option value="rym" {% if genre_src == 'rym' %}selected{% endif %}>RateYourMusic</option>
         <option value="custom" {% if genre_src == 'custom' %}selected{% endif %}>genres.yaml</option>
       </select>
-      <button type="submit" name="reload_genres" value="1" class="secondary">Reload genres.yaml</button>
     </label>
+    <button type="submit" name="reload_genres" value="1" class="secondary">Reload genres.yaml</button>
     <label>
       Sort by
       <select name="sort">
@@ -40,18 +43,28 @@
       Search library
       <input type="search" name="q" value="{{ q }}" placeholder="Album, artist, spelling variants…">
     </label>
-    <label class="toolbar-check">
-      <input type="checkbox" name="rym_gaps" value="1" {% if rym_gaps %}checked{% endif %}>
-      Only albums with no genres or a genre outside the selected list
-    </label>
-    <label class="toolbar-check">
-      <input type="checkbox" name="no_singleton" value="1" {% if exclude_single_tracks %}checked{% endif %}>
-      Exclude single-track albums
-    </label>
-    <label class="toolbar-check">
-      <input type="checkbox" name="reload" value="1">
-      Force reload
-    </label>
+    <div style="display: flex; justify-content: space-between;">
+        <label class="toolbar-check">
+          <input type="checkbox" name="rym_gaps" value="1" {% if rym_gaps %}checked{% endif %}>
+          Only albums with a genre outside the selected list
+        </label>
+        <label class="toolbar-check">
+          <input type="checkbox" name="played_albums" value="1" {% if played_albums %}checked{% endif %}>
+          Only albums > 1 play 
+        </label>
+        <label class="toolbar-check">
+          <input type="checkbox" name="no_genre" value="1" {% if no_genre %}checked{% endif %}>
+          Only albums with no genres
+        </label>
+        <label class="toolbar-check">
+          <input type="checkbox" name="no_singleton" value="1" {% if exclude_single_tracks %}checked{% endif %}>
+          Exclude single-track albums
+        </label>
+        <label class="toolbar-check">
+          <input type="checkbox" name="reload" value="1">
+          Force reload
+        </label>
+    </div>
     <div class="toolbar-actions">
       <button type="submit">Apply</button>
       {% if q or rym_gaps or exclude_single_tracks or genre_src != 'rym' or album_sort != 'played' %}
@@ -80,40 +93,21 @@
     </div>
   </form>
 
+  <form class="toolbar genre-create" method="post" action="{{ url_for('batch_delete_genre') }}">
+      <p class="genre-create-heading">Remove genre from all tracks</p>
+      <label>
+        Name
+        <input type="text" name="name" required placeholder="e.g. Pop/Rock">
+      </label>
+      <div class="toolbar-actions">
+        <button type="submit">Delete genre</button>
+      </div>
+  </form>
+
   <p class="album-stats">
-    {% if gap_effective and not q %}
-      <span id="gap-count-line">
-        {% if filter_match_total is not none %}
-          <strong>{{ "{:,}".format(filter_match_total) }}</strong> albums match this filter
-          {% if scan_hit_cap and not gap_count_pending %}<span class="stat-tag">(scan stopped at 500k albums)</span>{% endif %}
-        {% else %}
-          <span id="gap-count-slot"
-                hx-get="{{ url_for('gap_match_count', genre_src=genre_src if genre_src != 'rym' else none, no_singleton=1 if exclude_single_tracks else none) }}"
-                hx-trigger="load"
-                hx-swap="innerHTML"
-                class="muted">Counting matches…</span>
-        {% endif %}
-      </span>
-      {% if library_album_total is not none %}
-        · <strong>{{ "{:,}".format(library_album_total) }}</strong> albums in this library
-      {% endif %}
+      <strong>{{ "{:,}".format(filter_match_total) }}</strong> albums match filters
       ·
-    {% elif q and filter_match_total is not none %}
-      <strong>{{ "{:,}".format(filter_match_total) }}</strong> albums match your filters <span class="stat-tag">(within hub results, max 500)</span>
-      {% if gap_effective %}<span class="stat-tag">missing / outside selected list</span>{% endif %}
-      {% if exclude_single_tracks %}<span class="stat-tag">excluding single-track</span>{% endif %}
-      {% if library_album_total is not none %}
-        · <strong>{{ "{:,}".format(library_album_total) }}</strong> albums in this library
-      {% endif %}
-      ·
-    {% elif library_album_total is not none %}
-      <strong>{{ "{:,}".format(library_album_total) }}</strong> albums in this library ·
-    {% endif %}
-    This view: <strong>{{ albums|length }}</strong> on page {{ page }}
-    {% if gap_effective %}<span class="stat-tag">(missing / outside selected list)</span>{% endif %}
-    {% if exclude_single_tracks and not gap_effective %}<span class="stat-tag">(multi-track only)</span>{% endif %}
-    {% if q and not gap_effective %}<span class="stat-tag">(hub search, up to 500 hits)</span>{% endif %}
-    {% if exclude_single_tracks and not q and not gap_effective and scan_hit_cap %}<span class="stat-tag">(browse scan stopped at 500k albums)</span>{% endif %}
+      <strong>{{ "{:,}".format(library_album_total) }}</strong> albums loaded 
   </p>
 
   {% if albums %}

@@ -19,11 +19,6 @@ genres:
     - Dance Gavin Dance
     - Hail the Sun
   related: 
-    - Post-Hardcore
-
-- name: Post-Hardcore
-  examples: 
-  related: 
 
 - name: Scene Post-Hardcore
   examples: 
@@ -105,3 +100,222 @@ genres:
     - Post-Hardcore
     - Melodic Hardcore
     - Hardcore
+
+- name: Electronicore
+  examples: 
+    - Enter Shikari
+    - I See Stars
+  related: 
+    - Scene Post-Hardcore
+
+- name: Emo
+  examples: 
+    - Senses Fail
+    - MCr
+  related: 
+
+- name: Hardcore
+  examples: 
+    - Sick of It All
+    - Merauder
+    - Stick to Your Guns
+  related: 
+
+- name: Screamo
+  examples: 
+    - Saosin
+    - Dance Gavin Dance
+    - A Static Lullaby
+  related: 
+
+- name: Indie Rock
+  examples: 
+    - The Shins
+    - Alex G
+    - Modest Mouse
+  related: 
+
+- name: Grunge
+  examples: 
+  related: 
+
+- name: Post-Hardcore
+  examples: 
+    - Saosin
+    - Dance Gavin Dance
+    - Enter Shikari
+  related: 
+
+- name: Power Pop
+  examples: 
+    - Weezer
+  related: 
+
+- name: Alt-Pop
+  examples: 
+    - Terror Jr
+    - Miso Extra
+  related: 
+
+- name: Slacker Rock
+  examples: 
+    - Kurt Vile
+    - Mac DeMarco
+  related: 
+
+- name: Country
+  examples: 
+  related: 
+
+- name: Alternative Rock
+  examples: 
+    - Third Eye Blind
+    - Coldplay
+    - Train
+  related: 
+
+- name: "R&B"
+  examples: 
+  related: 
+
+- name: Emo Pop
+  examples: 
+  related: 
+
+- name: Electro House
+  examples: 
+  related: 
+
+- name: Garage Punk
+  examples: 
+    - FIDLAR
+    - The Dirty Nil
+  related: 
+
+- name: Ska Punk
+  examples: 
+    - The Mighty Mighty Bosstones
+    - Less Than Jake
+    - Reel Big Fish
+  related: 
+
+- name: Jazz
+  examples: 
+  related: 
+
+- name: Dubstep
+  examples: 
+  related: 
+
+- name: Melodic Hardcore
+  examples: 
+    - Rise Against
+    - Boysetsfire
+    - Strike Anywhere
+  related: 
+
+- name: Stoner Metal
+  examples: 
+    - Electric Wizard
+    - Dopethrone
+    - Dopelord
+  related: 
+
+- name: Glitch Hop
+  examples: 
+    - The Glitch Mob
+  related: 
+
+- name: Hyperpop
+  examples: 
+    - 100 gecs
+    - Underscores
+  related: 
+
+- name: Reggae
+  examples: 
+  related: 
+
+- name: Electronic Dance Music
+  examples: 
+  related: 
+
+- name: Heavy Psych
+  examples: 
+  related: 
+
+- name: Doom Metal
+  examples: 
+  related: 
+
+- name: Wonky
+  examples: 
+    - 20syl
+    - Mux Mool
+  related: 
+
+- name: Hard Rock
+  examples: 
+    - Wolfmother
+  related: 
+
+- name: Post-Rock
+  examples: 
+    - American Football
+    - "Godspeed You! Black Emperor"
+  related: 
+
+- name: J-Pop
+  examples: 
+  related: 
+
+- name: Rap
+  examples: 
+  related: 
+
+- name: Grime
+  examples: 
+  related: 
+
+- name: Emo Rap
+  examples: 
+  related: 
+
+- name: Metalcore
+  examples: 
+    - "Of Mice & Men"
+    - Adept
+    - Bring Me the Horizon
+  related: 
+
+- name: Blackgaze
+  examples: 
+    - Agriculture
+  related: 
+    - Black Metal
+
+- name: Midwest Emo
+  examples: 
+    - Tigers Jaw
+    - Modern Baseball
+  related: 
+
+- name: Folk
+  examples: 
+  related: 
+
+- name: Death Metal
+  examples: 
+  related: 
+
+- name: Stoner Rock
+  examples: 
+  related: 
+
+- name: Power Metal
+  examples: 
+  related: 
+
+- name: Folk Punk
+  examples: 
+  related:

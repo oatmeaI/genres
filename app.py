@@ -25,7 +25,13 @@ from markupsafe import escape
 from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
-from plex import set_album_genres, set_tracks_genres, titlecase_tracks
+from plex import (
+    remove_album_genre,
+    remove_tracks_genre,
+    set_album_genres,
+    set_tracks_genres,
+    titlecase_tracks,
+)
 from genres_yaml import (
     GenreEntry,
     GenresYaml,
@@ -36,16 +42,12 @@ from genres_yaml import (
 )
 from rym import RymHierarchy, get_rym_hierarchy
 from env import env
-from util import form_bool, timer
+from util import form_bool, query_bool, timer
 from plex_server import get_music_section
 from search import (
-    fetch_browse_page_slice,
     AlbumCache,
-    album_has_rym_genre_gap,
-    passes_multi_track_filter,
     plex_album_sort,
     resolve_album_sort,
-    sort_albums,
 )
 
 log = logging.getLogger(__name__)
@@ -86,7 +88,9 @@ def create_app() -> Flask:
         related = parse_genre_list_field(request.form.get("related") or "")
 
         try:
-            add_genre_entry(GenreEntry(name=name, examples=tuple(examples), related=tuple(related)))
+            add_genre_entry(
+                GenreEntry(name=name, examples=tuple(examples), related=tuple(related))
+            )
         except ValueError as e:
             return redirect(
                 url_for(
@@ -137,47 +141,33 @@ def create_app() -> Flask:
                 message=f"Could not load {label}.",
             ), 503
 
-        rym_gaps = request.args.get("rym_gaps") in ("1", "on", "true", "yes")
-        exclude_single_tracks = request.args.get("no_singleton") in (
-            "1",
-            "on",
-            "true",
-            "yes",
-        )
+        rym_gaps = query_bool(request, "rym_gaps")
+        no_genre = query_bool(request, "no_genre")
+        played_albums = query_bool(request, "played_albums")
+        exclude_single_tracks = query_bool(request, "no_singleton")
         try:
             page = max(1, int(request.args.get("page", 1)))
         except ValueError:
             page = 1
 
-        force_reload = request.args.get("reload") in (
-            "1",
-            "on",
-            "true",
-            "yes",
-        )
-
+        force_reload = query_bool(request, "reload")
         if force_reload:
             album_cache.load(force=True)
 
         per = 10
-        start = (page - 1) * per
         album_sort = resolve_album_sort(request.args.get("sort"))
         plex_sort = plex_album_sort(album_sort)
         if plex_sort != album_cache.album_sort:
             album_cache.album_sort = plex_sort
             album_cache.load(force=True)
         q = (request.args.get("q") or "").strip()
-        hub_limit = 500
 
         known_cf = hierarchy.known_names_casefold()
         gap_effective = bool(rym_gaps and known_cf is not None)
         gap_unavailable = bool(rym_gaps and known_cf is None)
 
         timer.time("lib size")
-        try:
-            library_album_total = section.totalViewSize(libtype="album")
-        except (BadRequest, NotFound, OSError, RuntimeError):
-            library_album_total = None
+        library_album_total = album_cache.size()
 
         scan_hit_cap = False
         filter_match_total: int | None = None
@@ -185,37 +175,19 @@ def create_app() -> Flask:
         timer.time("lib size")
 
         try:
-            if q:
-                all_found = section.hubSearch(q, mediatype="album", limit=hub_limit)
-                if gap_effective:
-                    all_found = [
-                        a for a in all_found if album_has_rym_genre_gap(a, known_cf)
-                    ]
-                if exclude_single_tracks:
-                    all_found = [
-                        a for a in all_found if passes_multi_track_filter(a, True)
-                    ]
-                if gap_effective or exclude_single_tracks:
-                    filter_match_total = len(all_found)
-                all_found = sort_albums(all_found, album_sort)
-                albums = all_found[start : start + per]
-                pager_has_next = start + per < len(all_found)
-            elif gap_effective:
-                timer.time("fetch albums")
-                albums, pager_has_next, scan_hit_cap = album_cache.fetch_gap_page_slice(
-                    known_cf,
-                    page,
-                    per,
-                    exclude_single_tracks,
-                    album_sort,
-                )
-                timer.time("fetch albums")
-                filter_match_total = None
-                gap_count_pending = True
-            else:
-                albums, pager_has_next, scan_hit_cap = fetch_browse_page_slice(
-                    section, plex_sort, page, per, exclude_single_tracks
-                )
+            timer.time("fetch albums")
+            albums, pager_has_next, filter_match_total = album_cache.fetch_page(
+                known_cf,
+                page,
+                per,
+                exclude_single_tracks,
+                album_sort,
+                rym_gaps,
+                no_genre,
+                played_albums,
+                q,
+            )
+            timer.time("fetch albums")
         except (BadRequest, NotFound) as e:
             return (
                 render_template(
@@ -223,6 +195,8 @@ def create_app() -> Flask:
                     section_title=section.title,
                     albums=[],
                     q=q,
+                    no_genre=no_genre,
+                    played_albums=played_albums,
                     page=page,
                     per_page=per,
                     rym_gaps=rym_gaps,
@@ -241,16 +215,17 @@ def create_app() -> Flask:
                 400,
             )
 
-        timer.time("route")
         for album in albums:
             album.reload()
             album.genres
-        get_album_tags(albums[0])
+
         return render_template(
             "index.html",
             section_title=section.title,
             albums=albums,
             q=q,
+            no_genre=no_genre,
+            played_albums=played_albums,
             page=page,
             per_page=per,
             rym_gaps=rym_gaps,
@@ -267,7 +242,28 @@ def create_app() -> Flask:
             genres_reloaded=genres_reloaded,
             genre_added=request.args.get("genre_added"),
             genre_create_error=request.args.get("genre_create_error"),
+            genre_deleted=request.args.get("genre_deleted"),
             error=None,
+        )
+
+    @app.post("/batch-delete-genre")
+    def batch_delete_genre():
+        name = (request.form.get("name") or "").strip()
+        albums = album_cache.find_by_genre(name)
+        i = 0
+        for album in albums:
+            print(album.title)
+            remove_album_genre(album, name, section)
+            print("album tag updated")
+            remove_tracks_genre(album, name, section)
+            print("track tags updated")
+            album_cache.update(album)
+        return redirect(
+            url_for(
+                "index",
+                genre_src=GENRE_SOURCE_CUSTOM,
+                genre_deleted=name,
+            )
         )
 
     @app.get("/album/<int:rating_key>/lastfm")
