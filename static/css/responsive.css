@@ -16,9 +16,24 @@
     padding: 1rem 0.85rem 2rem;
   }
 
-  input,
+  /* iOS zooms focused fields when font-size < 16px (often inherited from labels). */
+  input[type="text"],
+  input[type="search"],
+  input:not([type]),
   select,
   textarea,
+  .toolbar select,
+  .toolbar input[type="search"],
+  .toolbar input[type="text"],
+  .genre-create input[type="text"],
+  .genre-editor-form input[type="text"],
+  .genre-editor-add input[type="text"],
+  .genre-form input:not([type="hidden"]),
+  .genre-add-input,
+  .genre-autocomplete {
+    font-size: 16px;
+  }
+
   button {
     font-size: 16px;
   }

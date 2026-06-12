@@ -85,7 +85,7 @@
 
     <div class="toolbar-actions">
       <button type="submit">Apply</button>
-      {% if q or rym_gaps or exclude_single_tracks or genre_src != 'rym' or album_sort != 'played' %}
+      {% if q or rym_gaps or exclude_single_tracks or genre_src != 'custom' or album_sort != 'played' %}
         <a class="btn-link secondary toolbar-clear" href="{{ url_for('index') }}">Clear all</a>
       {% endif %}
     </div>
@@ -136,7 +136,7 @@
         'index',
         q=q or none,
         page=page - 1,
-        genre_src=genre_src if genre_src != 'rym' else none,
+        genre_src=genre_src if genre_src != 'custom' else none,
         sort=album_sort if album_sort != 'played' else none,
         rym_gaps=1 if rym_gaps else none,
         no_singleton=1 if exclude_single_tracks else none
@@ -150,7 +150,7 @@
         'index',
         q=q or none,
         page=page + 1,
-        genre_src=genre_src if genre_src != 'rym' else none,
+        genre_src=genre_src if genre_src != 'custom' else none,
         sort=album_sort if album_sort != 'played' else none,
         rym_gaps=1 if rym_gaps else none,
         no_singleton=1 if exclude_single_tracks else none

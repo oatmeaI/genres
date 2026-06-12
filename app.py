@@ -11,7 +11,7 @@ Configuration (environment variables):
                            mutagen. Paths are resolved by matching Plex ``MediaPart.file`` against this library's
                            Plex folder roots, then re-rooting under ``MUSIC_LIBRARY_DISK_PATH``.
 
-The UI can switch between the RYM tree and genres.yaml (``?genre_src=custom``). RYM expands ancestor genres;
+The UI defaults to genres.yaml; use ``?genre_src=rym`` for the RYM tree. RYM expands ancestor genres;
 genres.yaml expands each entry's ``related`` list. Names not found in the active list are still saved as typed.
 """
 
@@ -60,7 +60,7 @@ GENRE_SOURCE_CUSTOM = "custom"
 
 
 def resolve_genre_source(value: str | None) -> str:
-    return GENRE_SOURCE_CUSTOM if value == GENRE_SOURCE_CUSTOM else GENRE_SOURCE_RYM
+    return GENRE_SOURCE_RYM if value == GENRE_SOURCE_RYM else GENRE_SOURCE_CUSTOM
 
 
 def get_genre_hierarchy(source: str) -> RymHierarchy | GenresYaml | None:

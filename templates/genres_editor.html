@@ -43,7 +43,7 @@
       hx-get="{{ url_for('genres_editor_partial', reload_genres=1) }}"
       hx-swap="none"
     >Reload from disk</a>
-    <a class="btn-link secondary toolbar-clear" href="{{ url_for('index', genre_src='custom') }}">Use on albums</a>
+    <a class="btn-link secondary toolbar-clear" href="{{ url_for('index') }}">Use on albums</a>
   </div>
 
   <form
