@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Edit genres.yaml{% endblock %}
+{% block heading %}Edit genres.yaml{% endblock %}
+{% block subheading %}
+  <p>File: <code>{{ file_path }}</code> · <span id="genre-editor-count">{{ genres|length }} genre{{ 's' if genres|length != 1 else '' }}</span> · Changes are written to disk immediately.</p>
+{% endblock %}
+{% block body %}
+  <div id="genre-editor-flash">
+    {% if error %}
+      {% with flash=error, flash_kind='error' %}
+        {% include "partial_genres_editor_flash.html" %}
+      {% endwith %}
+    {% elif genres_reloaded %}
+      {% with flash='Reloaded genres.yaml from disk.', flash_kind='success' %}
+        {% include "partial_genres_editor_flash.html" %}
+      {% endwith %}
+    {% elif genre_added %}
+      {% with flash='Added ' ~ genre_added ~ '.', flash_kind='success' %}
+        {% include "partial_genres_editor_flash.html" %}
+      {% endwith %}
+    {% elif genre_updated %}
+      {% with flash='Updated ' ~ genre_updated ~ '.', flash_kind='success' %}
+        {% include "partial_genres_editor_flash.html" %}
+      {% endwith %}
+    {% elif genre_deleted_yaml %}
+      {% with flash='Deleted ' ~ genre_deleted_yaml ~ ' from the file.', flash_kind='success' %}
+        {% include "partial_genres_editor_flash.html" %}
+      {% endwith %}
+    {% endif %}
+  </div>
+
+  <div class="toolbar editor-toolbar">
+    <a
+      class="btn-link secondary toolbar-clear"
+      href="{{ url_for('genres_editor_partial', reload_genres=1) }}"
+      hx-get="{{ url_for('genres_editor_partial', reload_genres=1) }}"
+      hx-swap="none"
+    >Reload from disk</a>
+    <a class="btn-link secondary toolbar-clear" href="{{ url_for('index', genre_src='custom') }}">Use on albums</a>
+  </div>
+
+  <form
+    class="toolbar genre-create genre-editor-add"
+    method="post"
+    action="{{ url_for('create_genre') }}"
+    hx-post="{{ url_for('create_genre') }}"
+    hx-swap="none"
+    hx-on::after-request="if (event.detail.successful) this.reset()"
+  >
+    <p class="genre-create-heading">Add genre</p>
+    <label>
+      Name
+      <input type="text" name="name" required placeholder="e.g. Stoner Doom" autocomplete="off">
+    </label>
+    <label>
+      Examples
+      <input type="text" name="examples" placeholder="Artists, comma-separated" autocomplete="off">
+    </label>
+    <label>
+      Related genres
+      <input type="text" name="related" class="genre-autocomplete" placeholder="Parent genres, comma-separated" autocomplete="off">
+    </label>
+    <div class="toolbar-actions">
+      <button type="submit">Add genre</button>
+    </div>
+  </form>
+
+  <div id="genre-editor-list" class="genre-editor-list">
+    {% include "partial_genres_editor_list.html" %}
+  </div>
+{% endblock %}

@@ -166,18 +166,57 @@ def format_genres_yaml(genres: list[GenreEntry]) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
+def _validate_unique_name(
+    genres: list[GenreEntry], name: str, except_index: int | None = None
+) -> None:
+    key = name.casefold()
+    for i, genre in enumerate(genres):
+        if except_index is not None and i == except_index:
+            continue
+        if genre.name.casefold() == key:
+            raise ValueError(f"Genre already exists: {genre.name}")
+
+
+def save_genres(genres: list[GenreEntry]) -> None:
+    path = genres_yaml_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(format_genres_yaml(genres), encoding="utf-8")
+    reload_genres_yaml()
+
+
+def load_genre_entries() -> list[GenreEntry]:
+    current = _load_genres_yaml()
+    return list(current.genres) if current else []
+
+
 def add_genre_entry(entry: GenreEntry) -> None:
     """Append a genre to genres.yaml on disk."""
     if not entry.name.strip():
         raise ValueError("Genre name is required.")
 
-    current = _load_genres_yaml()
-    genres = list(current.genres) if current else []
-    if any(g.name.casefold() == entry.name.casefold() for g in genres):
-        raise ValueError(f'Genre already exists: {entry.name}')
-
+    genres = load_genre_entries()
+    _validate_unique_name(genres, entry.name)
     genres.append(entry)
-    path = genres_yaml_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(format_genres_yaml(genres), encoding="utf-8")
-    reload_genres_yaml()
+    save_genres(genres)
+
+
+def update_genre_at(index: int, entry: GenreEntry) -> None:
+    if not entry.name.strip():
+        raise ValueError("Genre name is required.")
+
+    genres = load_genre_entries()
+    if index < 0 or index >= len(genres):
+        raise ValueError("Genre not found.")
+    _validate_unique_name(genres, entry.name, except_index=index)
+    genres[index] = entry
+    save_genres(genres)
+
+
+def delete_genre_at(index: int) -> str:
+    genres = load_genre_entries()
+    if index < 0 or index >= len(genres):
+        raise ValueError("Genre not found.")
+    name = genres[index].name
+    del genres[index]
+    save_genres(genres)
+    return name

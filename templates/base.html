@@ -28,6 +28,18 @@
       border-bottom: 1px solid var(--border);
       background: var(--panel);
     }
+    .site-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem 1rem;
+      margin-bottom: 0.65rem;
+      font-size: 0.88rem;
+    }
+    .site-nav a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .site-nav a:hover { text-decoration: underline; }
     header h1 { margin: 0 0 0.35rem; font-size: 1.35rem; font-weight: 650; }
     header p { margin: 0; color: var(--muted); font-size: 0.95rem; }
     main { padding: 1.25rem 1.5rem 2.5rem; max-width: 960px; margin: 0 auto; width: 100%; }
@@ -235,6 +247,73 @@
     .form-check input { width: auto; min-width: 1rem; min-height: 1rem; cursor: pointer; }
     .save-btn { min-height: 2.5rem; }
     .album-table { margin-top: 1rem; }
+    .editor-toolbar { margin-bottom: 0.5rem; }
+    .genre-editor-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-top: 1rem;
+    }
+    .genre-editor-card {
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+    .genre-editor-form label,
+    .genre-editor-add label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .genre-editor-form input[type="text"],
+    .genre-editor-add input[type="text"] {
+      padding: 0.45rem 0.55rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #12151c;
+      color: var(--text);
+      width: 100%;
+    }
+    .genre-editor-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      margin-top: 0.35rem;
+    }
+    .genre-editor-actions button[type="submit"],
+    .genre-editor-add button[type="submit"] {
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #252a38;
+      color: var(--text);
+      cursor: pointer;
+      min-height: 2.5rem;
+    }
+    .genre-editor-form.htmx-request button,
+    .genre-delete-form.htmx-request button,
+    .genre-editor-add.htmx-request button {
+      opacity: 0.6;
+      cursor: wait;
+    }
+    .genre-delete-form { margin-top: 0.5rem; }
+    button.danger,
+    .genre-delete-form button {
+      padding: 0.45rem 0.85rem;
+      border-radius: 6px;
+      border: 1px solid #5a3030;
+      background: #2a1a1a;
+      color: var(--error);
+      font-weight: 500;
+      cursor: pointer;
+    }
+    button.danger:hover,
+    .genre-delete-form button:hover { filter: brightness(1.08); }
 
     @media (max-width: 720px) {
       header { padding: 1rem; }
@@ -348,6 +427,10 @@
 </head>
 <body>
   <header>
+    <nav class="site-nav" aria-label="Main">
+      <a href="{{ url_for('index') }}">Albums</a>
+      <a href="{{ url_for('genres_editor') }}">Edit genres.yaml</a>
+    </nav>
     <h1>{% block heading %}Plex genres{% endblock %}</h1>
     {% block subheading %}{% endblock %}
   </header>
@@ -597,6 +680,21 @@
     window.addEventListener('scroll', function () {
       if (genreMenuInput) positionGenreMenu(genreMenuInput);
     }, true);
+
+    function reloadGenreHintsFromDom() {
+      try {
+        var hintsEl = document.getElementById('genre-hints');
+        if (hintsEl) genreHints = JSON.parse(hintsEl.textContent || '[]');
+      } catch (err) {
+        genreHints = [];
+      }
+      closeGenreMenu();
+    }
+
+    document.body.addEventListener('htmx:oobAfterSwap', function (evt) {
+      var target = evt.detail && evt.detail.target;
+      if (target && target.id === 'genre-hints') reloadGenreHintsFromDom();
+    });
   })();
   </script>
 </body>

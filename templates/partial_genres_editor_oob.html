@@ -1,0 +1,8 @@
+<div id="genre-editor-flash" hx-swap-oob="innerHTML">
+  {% include "partial_genres_editor_flash.html" %}
+</div>
+<span id="genre-editor-count" hx-swap-oob="innerHTML">{{ genres|length }} genre{{ 's' if genres|length != 1 else '' }}</span>
+<script id="genre-hints" type="application/json" hx-swap-oob="innerHTML">{{ genre_hints_json|safe }}</script>
+<div id="genre-editor-list" class="genre-editor-list" hx-swap-oob="innerHTML">
+  {% include "partial_genres_editor_list.html" %}
+</div>

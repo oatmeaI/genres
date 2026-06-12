@@ -1,0 +1,41 @@
+{% if genres %}
+  {% for genre in genres %}
+    <div class="genre-editor-card" id="genre-card-{{ loop.index0 }}">
+      <form
+        class="genre-editor-form"
+        method="post"
+        action="{{ url_for('update_genre_entry', index=loop.index0) }}"
+        hx-post="{{ url_for('update_genre_entry', index=loop.index0) }}"
+        hx-swap="none"
+      >
+        <label>
+          Name
+          <input type="text" name="name" value="{{ genre.name }}" required autocomplete="off">
+        </label>
+        <label>
+          Examples
+          <input type="text" name="examples" value="{{ genre.examples|join(', ') }}" autocomplete="off">
+        </label>
+        <label>
+          Related genres
+          <input type="text" name="related" class="genre-autocomplete" value="{{ genre.related|join(', ') }}" autocomplete="off">
+        </label>
+        <div class="genre-editor-actions">
+          <button type="submit">Save changes</button>
+        </div>
+      </form>
+      <form
+        method="post"
+        action="{{ url_for('delete_genre_entry', index=loop.index0) }}"
+        class="genre-delete-form"
+        hx-post="{{ url_for('delete_genre_entry', index=loop.index0) }}"
+        hx-swap="none"
+        hx-confirm="Delete {{ genre.name|e }} from genres.yaml?"
+      >
+        <button type="submit" class="danger">Delete from file</button>
+      </form>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="genre-editor-empty" style="color: var(--muted);">No genres yet. Add one above.</p>
+{% endif %}

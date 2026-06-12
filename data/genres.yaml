@@ -1,32 +1,5 @@
 ---
 genres:
-- name: Stoner Sludge
-  examples: 
-    - Weedeater
-    - Dopethrone
-  related: 
-    - Sludge Metal
-
-- name: Stoner Doom
-  examples: 
-    - Electric Wizard
-    - Dopelord
-  related: 
-    - Doom Metal
-
-- name: Swancore
-  examples: 
-    - Dance Gavin Dance
-    - Hail the Sun
-  related: 
-
-- name: Scene Post-Hardcore
-  examples: 
-    - Saosin
-    - Silverstein
-  related: 
-    - Post-Hardcore
-
 - name: Black Metal
   examples: 
   related: 
@@ -37,42 +10,9 @@ genres:
   related: 
     - Black Metal
 
-- name: Indie Emo
-  examples: 
-    - Tigers Jaw
-    - Modern Baseball
-  related: 
-
 - name: Pop Punk
   examples: 
   related: 
-
-- name: First Wave Pop Punk
-  examples: 
-    - Green Day
-    - Blink-182
-  related: 
-    - Pop Punk
-
-- name: Second Wave Pop Punk
-  examples: 
-    - All Time Low
-  related: 
-    - Pop Punk
-
-- name: Third Wave Pop Punk
-  examples: 
-    - Hot Mulligan
-  related: 
-    - Pop Punk
-
-- name: Fourth Wave Pop Punk
-  examples: 
-    - Stand Atlantic
-    - Waterparks
-    - People R Ugly
-  related: 
-    - Pop Punk
 
 - name: Easycore
   examples: 
@@ -90,28 +30,10 @@ genres:
   examples: 
   related: 
 
-- name: The Wave
-  examples: 
-    - Militarie Gun
-    - Drug Church
-    - Touché Amoré
-    - La Dispute
-  related: 
-    - Post-Hardcore
-    - Melodic Hardcore
-    - Hardcore
-
-- name: Electronicore
-  examples: 
-    - Enter Shikari
-    - I See Stars
-  related: 
-    - Scene Post-Hardcore
-
 - name: Emo
   examples: 
     - Senses Fail
-    - MCr
+    - MCR
   related: 
 
 - name: Hardcore
@@ -119,13 +41,6 @@ genres:
     - Sick of It All
     - Merauder
     - Stick to Your Guns
-  related: 
-
-- name: Screamo
-  examples: 
-    - Saosin
-    - Dance Gavin Dance
-    - A Static Lullaby
   related: 
 
 - name: Indie Rock
@@ -180,11 +95,15 @@ genres:
 
 - name: Emo Pop
   examples: 
+    - Jack's Mannequin
+    - Sherwood
+    - Mae
   related: 
 
 - name: Electro House
   examples: 
   related: 
+    - Electronic Dance Music
 
 - name: Garage Punk
   examples: 
@@ -206,6 +125,7 @@ genres:
 - name: Dubstep
   examples: 
   related: 
+    - Electronic Dance Music
 
 - name: Melodic Hardcore
   examples: 
@@ -225,6 +145,7 @@ genres:
   examples: 
     - The Glitch Mob
   related: 
+    - Electronic Dance Music
 
 - name: Hyperpop
   examples: 
@@ -276,6 +197,7 @@ genres:
 - name: Grime
   examples: 
   related: 
+    - Rap
 
 - name: Emo Rap
   examples: 

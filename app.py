@@ -36,9 +36,12 @@ from genres_yaml import (
     GenreEntry,
     GenresYaml,
     add_genre_entry,
+    delete_genre_at,
+    genres_yaml_path,
     get_genres_yaml,
     parse_genre_list_field,
     reload_genres_yaml,
+    update_genre_at,
 )
 from rym import RymHierarchy, get_rym_hierarchy
 from env import env
@@ -66,6 +69,40 @@ def get_genre_hierarchy(source: str) -> RymHierarchy | GenresYaml | None:
     return get_rym_hierarchy()
 
 
+def genre_entry_from_form() -> GenreEntry:
+    name = (request.form.get("name") or "").strip()
+    examples = parse_genre_list_field(request.form.get("examples") or "")
+    related = parse_genre_list_field(request.form.get("related") or "")
+    return GenreEntry(name=name, examples=tuple(examples), related=tuple(related))
+
+
+def editor_redirect(**params):
+    return redirect(url_for("genres_editor", **params))
+
+
+def is_htmx() -> bool:
+    return request.headers.get("HX-Request") == "true"
+
+
+def genres_editor_oob_response(
+    *,
+    flash: str | None = None,
+    flash_kind: str = "success",
+    genres: list | None = None,
+):
+    genres_yaml = get_genres_yaml()
+    if genres is None:
+        genres = genres_yaml.genres if genres_yaml else []
+    hints = genres_yaml.genre_hints_json if genres_yaml else "[]"
+    return render_template(
+        "partial_genres_editor_oob.html",
+        genres=genres,
+        flash=flash,
+        flash_kind=flash_kind,
+        genre_hints_json=hints,
+    )
+
+
 def create_app() -> Flask:
     app = Flask(__name__)
     section = get_music_section()
@@ -74,48 +111,110 @@ def create_app() -> Flask:
 
     @app.context_processor
     def inject_genre_datalist():
-        src = resolve_genre_source(request.args.get("genre_src") if request else None)
-        hierarchy = get_genre_hierarchy(src)
+        if request and (
+            request.path.startswith("/genres")
+            or request.path.startswith("/partial/genres-editor")
+        ):
+            hierarchy = get_genres_yaml()
+            src = GENRE_SOURCE_CUSTOM
+        else:
+            src = resolve_genre_source(request.args.get("genre_src") if request else None)
+            hierarchy = get_genre_hierarchy(src)
         return {
             "genre_hints_json": hierarchy.genre_hints_json if hierarchy else "[]",
             "genre_src": src,
         }
 
+    @app.get("/genres/editor")
+    def genres_editor():
+        if query_bool(request, "reload_genres"):
+            reload_genres_yaml()
+        genres_yaml = get_genres_yaml()
+        if genres_yaml is None:
+            return render_template(
+                "error.html",
+                message="Could not load genres.yaml.",
+            ), 503
+        return render_template(
+            "genres_editor.html",
+            genres=genres_yaml.genres,
+            file_path=str(genres_yaml_path()),
+            genre_added=request.args.get("genre_added"),
+            genre_updated=request.args.get("genre_updated"),
+            genre_deleted_yaml=request.args.get("genre_deleted"),
+            genres_reloaded=query_bool(request, "reload_genres"),
+            error=request.args.get("error"),
+        )
+
+    @app.get("/partial/genres-editor")
+    def genres_editor_partial():
+        if query_bool(request, "reload_genres"):
+            reload_genres_yaml()
+        genres_yaml = get_genres_yaml()
+        if genres_yaml is None:
+            return "Could not load genres.yaml.", 503
+        flash = (
+            "Reloaded genres.yaml from disk."
+            if query_bool(request, "reload_genres")
+            else None
+        )
+        return genres_editor_oob_response(flash=flash, genres=genres_yaml.genres)
+
     @app.post("/genres")
     def create_genre():
-        name = (request.form.get("name") or "").strip()
-        examples = parse_genre_list_field(request.form.get("examples") or "")
-        related = parse_genre_list_field(request.form.get("related") or "")
-
+        entry = genre_entry_from_form()
         try:
-            add_genre_entry(
-                GenreEntry(name=name, examples=tuple(examples), related=tuple(related))
-            )
+            add_genre_entry(entry)
         except ValueError as e:
-            return redirect(
-                url_for(
-                    "index",
-                    genre_src=GENRE_SOURCE_CUSTOM,
-                    genre_create_error=str(e),
-                )
-            )
+            if is_htmx():
+                return genres_editor_oob_response(flash=str(e), flash_kind="error")
+            return editor_redirect(error=str(e))
         except OSError as e:
             log.exception("Failed to write genres.yaml")
-            return redirect(
-                url_for(
-                    "index",
-                    genre_src=GENRE_SOURCE_CUSTOM,
-                    genre_create_error=f"Could not write genres.yaml: {e}",
-                )
-            )
+            msg = f"Could not write genres.yaml: {e}"
+            if is_htmx():
+                return genres_editor_oob_response(flash=msg, flash_kind="error")
+            return editor_redirect(error=msg)
+        if is_htmx():
+            return genres_editor_oob_response(flash=f"Added {entry.name}.")
+        return editor_redirect(genre_added=entry.name)
 
-        return redirect(
-            url_for(
-                "index",
-                genre_src=GENRE_SOURCE_CUSTOM,
-                genre_added=name,
-            )
-        )
+    @app.post("/genres/<int:index>")
+    def update_genre_entry(index: int):
+        entry = genre_entry_from_form()
+        try:
+            update_genre_at(index, entry)
+        except ValueError as e:
+            if is_htmx():
+                return genres_editor_oob_response(flash=str(e), flash_kind="error")
+            return editor_redirect(error=str(e))
+        except OSError as e:
+            log.exception("Failed to write genres.yaml")
+            msg = f"Could not write genres.yaml: {e}"
+            if is_htmx():
+                return genres_editor_oob_response(flash=msg, flash_kind="error")
+            return editor_redirect(error=msg)
+        if is_htmx():
+            return genres_editor_oob_response(flash=f"Updated {entry.name}.")
+        return editor_redirect(genre_updated=entry.name)
+
+    @app.post("/genres/<int:index>/delete")
+    def delete_genre_entry(index: int):
+        try:
+            name = delete_genre_at(index)
+        except ValueError as e:
+            if is_htmx():
+                return genres_editor_oob_response(flash=str(e), flash_kind="error")
+            return editor_redirect(error=str(e))
+        except OSError as e:
+            log.exception("Failed to write genres.yaml")
+            msg = f"Could not write genres.yaml: {e}"
+            if is_htmx():
+                return genres_editor_oob_response(flash=msg, flash_kind="error")
+            return editor_redirect(error=msg)
+        if is_htmx():
+            return genres_editor_oob_response(flash=f"Deleted {name} from the file.")
+        return editor_redirect(genre_deleted=name)
 
     @app.route("/")
     def index():
@@ -240,8 +339,6 @@ def create_app() -> Flask:
             scan_hit_cap=scan_hit_cap,
             filter_match_total=filter_match_total,
             genres_reloaded=genres_reloaded,
-            genre_added=request.args.get("genre_added"),
-            genre_create_error=request.args.get("genre_create_error"),
             genre_deleted=request.args.get("genre_deleted"),
             error=None,
         )
