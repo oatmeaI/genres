@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>{% block title %}Plex genres{% endblock %}</title>
-  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.10/dist/htmx.min.js" integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/variables.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/nav.css') }}">
@@ -20,6 +20,7 @@
     <nav class="site-nav" aria-label="Main">
       <a href="{{ url_for('index') }}">Albums</a>
       <a href="{{ url_for('genres_editor') }}">Edit genres.yaml</a>
+      <a href="{{ url_for('history') }}">Play history</a>
     </nav>
     <h1>{% block heading %}Plex genres{% endblock %}</h1>
     {% block subheading %}{% endblock %}

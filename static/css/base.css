@@ -76,3 +76,7 @@ th {
 .external-link {
   color: var(--accent);
 }
+
+.secondary.album-unsure-btn:disabled {
+    color: var(--muted)
+}

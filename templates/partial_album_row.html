@@ -33,6 +33,15 @@
       hx-swap="outerHTML"
       hx-get="/album/{{ album.ratingKey }}/lastfm?genre_src={{ genre_src|default('custom') }}"
     >Load LastFM tags</button>
+    <button
+      type="button"
+      class="secondary album-unsure-btn"
+      hx-target="#album-{{ album.ratingKey }}"
+      hx-swap="outerHTML"
+      hx-disabled-elt="this"
+      hx-vals='{"genre": "Unsure"}'
+      hx-post="/album/{{ album.ratingKey }}/genre"
+    >Unsure</button>
   </td>
 
   <td class="album-cell-genres" data-label="Genre">

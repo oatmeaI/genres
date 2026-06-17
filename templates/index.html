@@ -93,16 +93,6 @@
     <input type="hidden" name="page" value="1">
   </form>
 
-  <form class="toolbar genre-create" method="post" action="{{ url_for('batch_delete_genre') }}">
-    <p class="genre-create-heading">Remove genre from all tracks</p>
-    <label>
-      Name
-      <input type="text" name="name" required placeholder="e.g. Pop/Rock">
-    </label>
-    <div class="toolbar-actions">
-      <button type="submit">Delete genre</button>
-    </div>
-  </form>
 
   <p class="album-stats">
     <strong>{{ "{:,}".format(filter_match_total) }}</strong> albums match filters
@@ -136,6 +126,8 @@
         'index',
         q=q or none,
         page=page - 1,
+        no_genre=1 if no_genre else false,
+        played_albums=1 if played_albums else false,
         genre_src=genre_src if genre_src != 'custom' else none,
         sort=album_sort if album_sort != 'played' else none,
         rym_gaps=1 if rym_gaps else none,
@@ -149,6 +141,8 @@
       <a href="{{ url_for(
         'index',
         q=q or none,
+        no_genre=1 if no_genre else none,
+        played_albums=1 if played_albums else none,
         page=page + 1,
         genre_src=genre_src if genre_src != 'custom' else none,
         sort=album_sort if album_sort != 'played' else none,
@@ -157,4 +151,14 @@
       ) }}">Next →</a>
     {% endif %}
   </div>
+  <form class="toolbar genre-create" target="_blank" method="post" action="{{ url_for('batch_delete_genre') }}">
+    <p class="genre-create-heading">Remove genre from all tracks</p>
+    <label>
+      Name
+      <input type="text" name="name" required placeholder="e.g. Pop/Rock">
+    </label>
+    <div class="toolbar-actions">
+      <button type="submit">Delete genre</button>
+    </div>
+  </form>
 {% endblock %}

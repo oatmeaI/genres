@@ -32,6 +32,7 @@ def album_sort_key(album, sort_mode: str):
         return album.addedAt or datetime.min
     if mode == ALBUM_SORT_MOST_PLAYED:
         return album.viewCount or 0
+    # album.reload()  # NOTE: keep recently played up to date, this is going to slow things down. Let's see how badly.
     return album.lastViewedAt or datetime.min
 
 
@@ -123,7 +124,11 @@ def filter_unplayed(album, played_albums):
 def filter_by_query(album, q):
     if len(q) < 1:
         return True
-    return q in album.title or q in album.parentTitle
+    return (
+        q.casefold() in album.title.casefold()
+        or q.casefold() in album.parentTitle.casefold()
+        or q.casefold() in [g.tag.casefold() for g in album.genres]
+    )
 
 
 class AlbumCache:
@@ -205,6 +210,7 @@ class AlbumCache:
     def update(self, album):
         album.reload()
         self.albums[album.ratingKey] = album
+        return album
 
     def fetch_page(
         self,
@@ -248,17 +254,6 @@ class AlbumCache:
             if genre in genres:
                 albums.append(album)
         return albums
-        return list(
-            filter(
-                lambda album: (
-                    any(
-                        album_genre.tag.casefold() == genre
-                        for album_genre in (album.genres or [])
-                    )
-                ),
-                list(self.albums.values()),
-            )
-        )
 
     def fetch_all_gap_matches(
         self,

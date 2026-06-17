@@ -1,0 +1,21 @@
+<style>
+a.htmx-swapping div {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+</style>
+{% if history %}
+<p>Total: {{ history|length }}</p>
+  {% for play in history %}
+<a id="{{ loop.index0 }}">
+    <div  class="genre-editor-card" id="genre-card-{{ loop.index0 }}">
+        {% if play.url %}<img class="thumb" src="{{ play.url }}" alt="" width="44" height="44" loading="lazy">{% endif %}
+        <p class="album-title">{{ play.title }}</p>
+        <p class="">{{ play.parentTitle }}</p>
+        <p class="artist">{{ play.grandparentTitle }}</p>
+        <p class="artist">{{ play.viewedAt.strftime('%b %d %Y, %-I:%M%p') }}</p>
+        <button hx-target="closest a" hx-delete="{{url_for('delete_history', key=play.historyKey) }}" hx-swap="outerHTML swap:1s">Delete</button>
+    </div>
+</a>
+  {% endfor %}
+{% endif %}

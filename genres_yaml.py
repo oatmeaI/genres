@@ -38,7 +38,7 @@ class GenresYaml:
             if key in seen:
                 return
             seen.add(key)
-            ordered.append(label)
+            ordered.append(key)
 
         for raw in picks:
             term = raw.strip()

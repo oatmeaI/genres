@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Play history{% endblock %}
+{% block heading %}Play history{% endblock %}
+
+{% block body %}
+    <div id="history-search">
+        <form action="{{ url_for("history") }}" method="get">
+            <p><label>Oldest
+            <input 
+                type="date" 
+                id="oldest_input" 
+                name="oldest_input" 
+                value={{oldest_input}} 
+            />
+            </label></p>
+
+            <p><label>Newest
+            <input 
+                type="date" 
+                id="newest_input"
+                name="newest_input" 
+                value={{newest_input}}
+            />
+            </label></p>
+
+            <p><label>Filter
+                <input type="checkbox" name="filter" value="1" {% if should_filter %} checked {% endif %}>
+            </label></p>
+
+            <p><label>Max
+                <input type="number" name="max" value={{max}}>
+            </label></p>
+
+            <button type="submit">Apply</button>
+        </form>
+  <div id="genre-editor-list" class="genre-editor-list">
+    {% include "history_list.html" %}
+  </div>
+  <a href="{{ url_for(
+    'history',
+    newest=newest_shown
+  ) }}">← Previous</a>
+  <a href="{{ url_for(
+    'history',
+    newest=oldest_shown
+  ) }}">Next →</a>
+{% endblock %}

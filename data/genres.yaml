@@ -77,6 +77,7 @@ genres:
     - Kurt Vile
     - Mac DeMarco
   related: 
+    - Indie Rock
 
 - name: Country
   examples: 
@@ -133,6 +134,7 @@ genres:
     - Boysetsfire
     - Strike Anywhere
   related: 
+    - Punk Rock
 
 - name: Stoner Metal
   examples: 
@@ -240,4 +242,254 @@ genres:
 
 - name: Folk Punk
   examples: 
-  related:
+  related: 
+
+- name: Industrial Metal
+  examples: 
+  related: 
+
+- name: Sludge Metal
+  examples: 
+    - Thou
+  related: 
+
+- name: "Drum & Bass"
+  examples: 
+    - Pendulum
+  related: 
+    - Electronic Dance Music
+
+- name: Halftime
+  examples: 
+  related: 
+    - "Drum & Bass"
+    - Electronic Dance Music
+
+- name: Future Bass
+  examples: 
+  related: 
+    - Electronic Dance Music
+
+- name: Singer-songwriter
+  examples: 
+  related: 
+
+- name: Melodic Dubstep
+  examples: 
+    - Adventure Club
+  related: 
+    - Electronic Dance Music
+
+- name: Nu Metal
+  examples: 
+    - Deftones
+    - Korn
+    - Limp Bizkit
+  related: 
+
+- name: Progressive Rock
+  examples: 
+    - Jethro Tull
+    - True
+  related: 
+
+- name: Downtempo
+  examples: 
+    - Tycho
+  related: 
+
+- name: Post-Grunge
+  examples: 
+    - Seether
+    - Three Doors Down
+  related: 
+
+- name: Pop
+  examples: 
+  related: 
+
+- name: Atmospheric Black Metal
+  examples: 
+    - Blut Aus Nord
+  related: 
+    - Black Metal
+
+- name: Crossover Thrash
+  examples: 
+    - In Defence
+    - Municipal Waste
+  related: 
+
+- name: Post-Metal
+  examples: 
+    - Wolfhand
+  related: 
+
+- name: Lo-Fi Hip Hop
+  examples: 
+  related: 
+
+- name: Chamber Folk
+  examples: 
+    - Bon Iver
+    - Sufjan Stevens
+  related: 
+
+- name: Hardcore Punk
+  examples: 
+    - Dead Kennedys
+    - Black Flag
+  related: 
+    - Punk Rock
+
+- name: Electro Swing
+  examples: 
+  related: 
+    - Electronic Dance Music
+
+- name: Thrash Metal
+  examples: 
+    - Metallica
+    - Slayer
+  related: 
+
+- name: Indie Folk
+  examples: 
+  related: 
+
+- name: Blues
+  examples: 
+  related: 
+
+- name: Bluegrass
+  examples: 
+  related: 
+
+- name: House
+  examples: 
+  related: 
+    - Electronic Dance Music
+
+- name: Avant-Garde
+  examples: 
+    - Melt-Banana
+    - Clown Core
+  related: 
+
+- name: New Wave
+  examples: 
+  related: 
+
+- name: Math Rock
+  examples: 
+  related: 
+
+- name: Space Bass
+  examples: 
+  related: 
+    - Dubstep
+    - Electronic Dance Music
+
+- name: Synthpop
+  examples: 
+  related: 
+
+- name: Progressive House
+  examples: 
+  related: 
+    - Electronic Dance Music
+
+- name: Ambient
+  examples: 
+  related: 
+
+- name: IDM
+  examples: 
+  related: 
+
+- name: Melodic Death Metal
+  examples: 
+  related: 
+    - Death Metal
+
+- name: Unsure
+  examples: 
+    - Used to queue albums to decide later
+  related: 
+
+- name: EDM Trap
+  examples: 
+  related: 
+    - Electronic Dance Music
+
+- name: Complextro
+  examples: 
+  related: 
+    - Electro House
+    - Electronic Dance Music
+
+- name: Indie Pop
+  examples: 
+    - Foster the People
+  related: 
+
+- name: Breakbeat
+  examples: 
+  related: 
+
+- name: Techno
+  examples: 
+  related: 
+    - Electronic Dance Music
+
+- name: Funk Metal
+  examples: 
+    - Rage Against the Machine
+  related: 
+
+- name: Heavy Metal
+  examples: 
+    - Black Sabbath
+  related: 
+
+- name: Pop Country
+  examples: 
+    - Joe Nichols
+    - Dierks Bentley
+  related: 
+    - Country
+
+- name: Trip Hop
+  examples: 
+  related: 
+
+- name: Midtempo
+  examples: 
+    - Rezz
+  related: 
+    - Electronic Dance Music
+
+- name: Skate Punk
+  examples: 
+    - Screeching Weasel
+    - Green Day
+    - NOFX
+  related: 
+    - Pop Punk
+    - Punk Rock
+
+- name: Proto-Punk
+  examples: 
+    - Iggy Pop
+    - The Dictators
+  related: 
+
+- name: Folk Metal
+  examples: 
+  related: 
+
+- name: Bubblegum Bass
+  examples: 
+    - Shawn Wasabi
+  related: 
+    - Electronic Dance Music

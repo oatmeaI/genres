@@ -1,35 +1,24 @@
-"""Small Flask UI to list Plex music albums and edit album genres.
-
-Configuration (environment variables):
-  PLEX_URL                 Base URL of the server, e.g. http://127.0.0.1:32400
-  PLEX_TOKEN               X-Plex-Token for an account that can edit the library
-  PLEX_SECTION             Optional: exact name of the music library (uses the first music library if unset)
-  RYM_HIERARCHY_PATH       Optional: path to RateYourMusic Hierarchy.txt (default: ./data/RateYourMusic_Hierarchy.txt)
-  GENRES_YAML_PATH         Optional: path to custom genres.yaml (default: ./data/genres.yaml)
-  MUSIC_LIBRARY_DISK_PATH  Optional: local filesystem root of the same music library Plex uses. When set, saving
-                           genres also writes a single ``genre`` tag to each track file (semicolon-separated) via
-                           mutagen. Paths are resolved by matching Plex ``MediaPart.file`` against this library's
-                           Plex folder roots, then re-rooting under ``MUSIC_LIBRARY_DISK_PATH``.
-
-The UI defaults to genres.yaml; use ``?genre_src=rym`` for the RYM tree. RYM expands ancestor genres;
-genres.yaml expands each entry's ``related`` list. Names not found in the active list are still saved as typed.
-"""
-
 from __future__ import annotations
 
 import logging
+from urllib.parse import urlencode
+from datetime import datetime, timedelta
 from copy import copy
 from flask import Flask, abort, redirect, render_template, request, url_for
 from lastfm import get_album_tags
 from markupsafe import escape
+from plex_queue import plex_queue
 from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
 from plex import (
     remove_album_genre,
+    remove_from_collections,
     remove_tracks_genre,
     set_album_genres,
     set_tracks_genres,
+    sync_album_genre_to_collection,
+    sync_collection_to_album_genre,
     titlecase_tracks,
 )
 from genres_yaml import (
@@ -262,7 +251,7 @@ def create_app() -> Flask:
         if force_reload:
             album_cache.load(force=True)
 
-        per = 10
+        per = 25
         album_sort = resolve_album_sort(request.args.get("sort"))
         plex_sort = plex_album_sort(album_sort)
         if plex_sort != album_cache.album_sort:
@@ -352,13 +341,32 @@ def create_app() -> Flask:
             error=None,
         )
 
+    @app.get("/sync-collection-genre")
+    def sync_collection_genre():
+        albums = album_cache.albums.values()
+        i = 0
+        for album in albums:
+            i += 1
+            print(f"[{i}/{len(albums)}] - {album.title}")
+            sync_collection_to_album_genre(album, section)
+
+    @app.get("/sync-genre-collection")
+    def sync_genre_collection():
+        albums = album_cache.albums.values()
+        i = 0
+        for album in albums:
+            i += 1
+            print(f"[{i}/{len(albums)}] - {album.title}")
+            sync_album_genre_to_collection(album, section)
+
     @app.post("/batch-delete-genre")
     def batch_delete_genre():
         name = (request.form.get("name") or "").strip()
         albums = album_cache.find_by_genre(name)
         i = 0
         for album in albums:
-            print(album.title)
+            i += 1
+            print(f"[{i}/{len(albums)}] - {album.title}")
             remove_album_genre(album, name, section)
             print("album tag updated")
             remove_tracks_genre(album, name, section)
@@ -417,18 +425,20 @@ def create_app() -> Flask:
         tags, unknown = hierarchy.expand_picks(picks)
         tags.reverse()
 
-        try:
-            timer.time("album genre")
+        def update():
+            print(tags)
             set_album_genres(album, tags)
-            timer.time("album genre")
-
-            timer.time("track genre")
             set_tracks_genres(album, tags, section)
-            timer.time("track genre")
+            sync_collection_to_album_genre(album, section)
+            updated_album = album_cache.update(album)
+            remove_from_collections(album, section)
+            sync_album_genre_to_collection(updated_album, section)
 
-            timer.time("reload album")
-            album_cache.update(album)
-            timer.time("reload album")
+        try:
+            plex_queue.queue_request(
+                update,
+                f"Update {album.title}",
+            )
 
             if form_bool(request, "titlecase_tracks"):
                 titlecase_tracks(album)
@@ -436,11 +446,12 @@ def create_app() -> Flask:
             if form_bool(request, "titlecase_albums"):
                 titlecase_tracks(album)
 
-            if bool(env("EDIT_TAGS", "")):
+            # NOTE: feels weird to hardcode this "unsure" case
+            if bool(env("EDIT_TAGS", "")) and genre.casefold() != "unsure":
                 timer.time("file update")
                 disk = music_library_root()
                 if disk is not None:
-                    sync_album_genres_to_track_files(album, tags)
+                    sync_album_genres_to_track_files(album)
                 timer.time("file update")
 
         except Exception as e:
@@ -472,6 +483,93 @@ def create_app() -> Flask:
             genre_unknown_note=note,
             genre_src=genre_src,
         )
+
+    @app.get("/history")
+    def history():
+        oldest = request.args.get("oldest") or None
+        oldest_input = request.args.get("oldest_input")
+
+        if oldest_input:
+            oldest = datetime.strptime(oldest_input, "%Y-%m-%d").timestamp()
+
+        newest = (
+            request.args.get("newest")
+            or (datetime.now() - timedelta(days=0)).timestamp()
+        )
+
+        newest_input = request.args.get("newest_input")
+
+        if newest_input:
+            newest = datetime.strptime(newest_input, "%Y-%m-%d").timestamp()
+
+        max = int(request.args.get("max") or 25) or None
+
+        filter = query_bool(request, "filter")
+
+        args = {
+            "librarySectionID": section.key,
+            "viewedAt<": int(newest),
+            "sort": "viewedAt:desc",
+        }
+
+        if oldest:
+            args["viewedAt>"] = int(oldest)
+
+        key = f"/status/sessions/history/all?{urlencode(args)}"
+
+        history = section.fetchItems(key, maxresults=max)
+
+        newest_shown = (
+            int(history[0].viewedAt.timestamp()) if len(history) > 0 else int(newest)
+        )
+        oldest_shown = (
+            int(history[-1].viewedAt.timestamp())
+            if len(history) > 0
+            else 0  # FIXME int(oldest)
+        )
+
+        prev_play = None
+        filtered_plays = []
+
+        if filter:
+            prev_play = None
+            for play in history:
+                if (
+                    prev_play
+                    and play.title == prev_play.title
+                    and prev_play.parentTitle == play.parentTitle
+                ):
+                    if prev_play not in filtered_plays:
+                        filtered_plays.append(prev_play)
+                    filtered_plays.append(play)
+                prev_play = play
+        else:
+            filtered_plays = history
+
+        for play in filtered_plays:
+            try:
+                play.url = play.album().thumbUrl
+            except Exception as e:
+                play.url = None
+
+        return render_template(
+            "history_editor.html",
+            history=filtered_plays,  # TODO: this always shows a previous button even when not available?
+            newest_shown=newest_shown + 1,
+            oldest_shown=oldest_shown - 1,  # Not clean, but ensures we avoid repeats
+            max=max or 0,
+            should_filter=filter,
+            oldest_input=datetime.fromtimestamp(oldest or 0).strftime("%Y-%m-%d"),
+            newest_input=datetime.fromtimestamp(int(newest)).strftime("%Y-%m-%d"),
+        )
+
+    @app.delete("/delete-history")
+    def delete_history():
+        id = request.args.get("key")
+        # day = request.args.get("day")
+        history_item = section.fetchItem(id)
+        history_item.delete()
+        return "", 200
 
     @app.get("/partial/gap-match-count")
     def gap_match_count():

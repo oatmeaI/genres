@@ -47,10 +47,10 @@ def music_library_root() -> Path | None:
 
 def sync_album_genres_to_track_files(
     album,
-    genre_tags: list[str],
 ) -> None:
+    tags = [g.tag for g in album.genres]
     """Write the same genre list to each track file under ``disk_root`` (semicolon-separated)."""
-    joined = ";".join(dict.fromkeys(genre_tags)) if genre_tags else ""
+    joined = ";".join(dict.fromkeys(tags)) if tags else ""
     album.reload()
     section = album._server.library.sectionByID(album.librarySectionID)
     plex_library_roots = list(section.locations)
@@ -97,7 +97,6 @@ def sync_album_genres_to_track_files(
 
 
 def _write_genre_tag_with_mutagen(path: Path, genre_semicolon_separated: str) -> None:
-
     path = path.resolve()
     audio = mutagen_file(str(path), easy=True)
     if audio is None:
