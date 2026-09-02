@@ -31,13 +31,18 @@ class PlexRequestQueue:
             request = self.requests[0]
             name = self.request_names[0]
             print("[run]", name)
-            request()
-            print("[fin]", name)
-            self.requests.remove(request)
-            self.request_names.remove(name)
+            try:
+                request()
+                print("[fin]", name)
+                self.requests.remove(request)
+                self.request_names.remove(name)
+            except Exception as e:
+                print(e)
 
         if len(self.requests) > 0:
             self.start_timer()
+        else:
+            self.timer.cancel()
 
 
 plex_queue = PlexRequestQueue()

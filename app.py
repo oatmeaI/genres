@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+from itertools import batched
+# from plexapi import CONFIG
+# CONFIG.autoreload = False  # requires manual reload() calls
+
+from pprint import pprint
+import rich
+
+import signal
 import logging
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
 from copy import copy
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, redirect, render_template, request, url_for, Response, stream_with_context
 from lastfm import get_album_tags
 from markupsafe import escape
 from plex_queue import plex_queue
@@ -12,6 +20,7 @@ from plexapi.exceptions import BadRequest, NotFound
 
 from files import sync_album_genres_to_track_files, music_library_root
 from plex import (
+    find_collection,
     remove_album_genre,
     remove_from_collections,
     remove_tracks_genre,
@@ -35,6 +44,7 @@ from genres_yaml import (
 from rym import RymHierarchy, get_rym_hierarchy
 from env import env
 from util import form_bool, query_bool, timer
+import threading
 from plex_server import get_music_section
 from search import (
     AlbumCache,
@@ -158,6 +168,71 @@ def create_app() -> Flask:
         )
         return genres_editor_oob_response(flash=flash, genres=genres_yaml.genres)
 
+    @app.get("/update")
+    def update():
+        def update_collection(name, albums):
+            collection = find_collection(name, section)
+            yield "."
+            if collection is not None:
+                collection.delete()
+            yield "."
+            collection = section.createCollection(name, items=[albums[0]])
+            yield "."
+            for batch in list(batched(albums, 20)):
+                collection.addItems(batch)
+                yield "."
+
+        def generate():
+            yield "Loading albums"
+            yield from album_cache.load_generator(force=True)
+            yield f"done ({album_cache.size()})\n"
+
+            unfaved_albums_list = album_cache.unfaved_albums()
+            yield "Updating unfaved"
+            yield from update_collection("• unfaved •", unfaved_albums_list)
+            yield f"done ({len(unfaved_albums_list)})\n"
+
+            incomplete = album_cache.incomplete_albums()
+            yield "Updating incomplete"
+            yield from update_collection("> incomplete <", incomplete)
+            yield f"done ({len(incomplete)})\n"
+
+            upgrade = album_cache.upgrade_albums(bitrate=192)
+            yield "Updating upgradeable"
+            yield from update_collection("> upgradeable <", upgrade)
+            yield f"done ({len(upgrade)})\n"
+
+            partially_albums_list = album_cache.partially_played_albums()
+            yield "Updating partial play"
+            yield from update_collection("• partial play •", partially_albums_list)
+            yield f"done ({len(partially_albums_list)})\n"
+
+            yield "All done."
+
+        return Response(generate(), mimetype="text/plain")
+
+    @app.get("/played-ratio")
+    def played_ratio():
+        all_albums = album_cache.size()
+        unplayed_albums_list = album_cache.unplayed_albums()
+        unplayed_albums = len(unplayed_albums_list)
+
+        partially_albums_list = album_cache.partially_played_albums()
+        partially_albums = len(partially_albums_list)
+
+        unfaved_albums_list = album_cache.unfaved_albums()
+        unfaved_albums = len(unfaved_albums_list)
+    
+        return Response(f"""
+Completely unplayed albums:\t{unplayed_albums} / {all_albums}\t({(unplayed_albums / all_albums) *
+            100:.2f}%)
+
+Partially played albums:\t{partially_albums} / {all_albums}\t({(partially_albums / all_albums) * 100:.2f}%)
+
+Played albums with no rated tracks:\t{unfaved_albums} / {all_albums}\t({(unfaved_albums / all_albums) *
+            100:.2f}%)
+        """, mimetype="text/plain")
+
     @app.post("/genres")
     def create_genre():
         entry = genre_entry_from_form()
@@ -213,6 +288,61 @@ def create_app() -> Flask:
         if is_htmx():
             return genres_editor_oob_response(flash=f"Deleted {name} from the file.")
         return editor_redirect(genre_deleted=name)
+
+    @app.get("/upgrade")
+    def upgrade():
+        try:
+            page = max(1, int(request.args.get("page", 1)))
+        except ValueError:
+            page = 1
+
+        try:
+            bitrate = max(1, int(request.args.get("bitrate", 1)))
+        except ValueError:
+            bitrate = 320
+
+        album_sort = resolve_album_sort(request.args.get("sort"))
+        per = 25
+        library_album_total = album_cache.size()
+        albums, pager_has_next, filter_match_total = album_cache.fetch_upgrade_page(
+            page, per, album_sort, bitrate
+        )
+
+        return render_template(
+            "upgrade.html",
+            albums=albums,
+            page=page,
+            bitrate=bitrate,
+            album_sort=album_sort,
+            pager_has_next=pager_has_next,
+            library_album_total=library_album_total,
+            filter_match_total=filter_match_total,
+        )
+
+    @app.get("/incomplete")
+    def incomplete():
+        try:
+            page = max(1, int(request.args.get("page", 1)))
+        except ValueError:
+            page = 1
+        album_sort = resolve_album_sort(request.args.get("sort"))
+        per = 25
+        library_album_total = album_cache.size()
+        albums, pager_has_next, filter_match_total = album_cache.fetch_incomplete_page(
+            page,
+            per,
+            album_sort,
+        )
+
+        return render_template(
+            "incomplete.html",
+            albums=albums,
+            page=page,
+            album_sort=album_sort,
+            pager_has_next=pager_has_next,
+            library_album_total=library_album_total,
+            filter_match_total=filter_match_total,
+        )
 
     @app.route("/")
     def index():
@@ -343,21 +473,32 @@ def create_app() -> Flask:
 
     @app.get("/sync-collection-genre")
     def sync_collection_genre():
-        albums = album_cache.albums.values()
-        i = 0
-        for album in albums:
-            i += 1
-            print(f"[{i}/{len(albums)}] - {album.title}")
-            sync_collection_to_album_genre(album, section)
+        def generate():
+            yield "Loading albums"
+            yield from album_cache.load_generator(force=True)
+            yield f"done ({album_cache.size()})\n"
+            albums = album_cache.albums.values()
+            i = 0
+            for album in albums:
+                i += 1
+                yield from sync_collection_to_album_genre(album, section)
+                yield f"[{i}/{len(albums)}] - {album.title}\n"
+            yield "DONE"
+
+        return Response(generate(), mimetype="text/plain")
 
     @app.get("/sync-genre-collection")
     def sync_genre_collection():
-        albums = album_cache.albums.values()
-        i = 0
-        for album in albums:
-            i += 1
-            print(f"[{i}/{len(albums)}] - {album.title}")
-            sync_album_genre_to_collection(album, section)
+        def generate():
+            albums = album_cache.albums.values()
+            i = 0
+            for album in albums:
+                i += 1
+                yield f"[{i}/{len(albums)}] - {album.title}\n"
+                sync_album_genre_to_collection(album, section)
+            yield "DONE"
+
+        return Response(generate(), mimetype="text/plain")
 
     @app.post("/batch-delete-genre")
     def batch_delete_genre():
@@ -428,10 +569,15 @@ def create_app() -> Flask:
         def update():
             print(tags)
             set_album_genres(album, tags)
-            set_tracks_genres(album, tags, section)
-            sync_collection_to_album_genre(album, section)
             updated_album = album_cache.update(album)
-            remove_from_collections(album, section)
+
+            set_tracks_genres(updated_album, tags, section)
+
+            # We do this during AlbumCache.preload_album now
+            # sync_collection_to_album_genre(updated_album, section)
+            # updated_album = album_cache.update(album)
+
+            remove_from_collections(updated_album, section)
             sync_album_genre_to_collection(updated_album, section)
 
         try:
@@ -484,9 +630,37 @@ def create_app() -> Flask:
             genre_src=genre_src,
         )
 
+    @app.get("/unmatched")
+    def unmatched():
+        albums = section.searchAlbums(
+            unmatched=True, container_start=0, container_size=1, limit=3
+        )
+        print(len(albums))
+        i = 0
+        for album in albums:
+            print(i)
+            i += 1
+            album.found_matches = album.matches()
+
+        return render_template(
+            "unmatched.html", albums=albums, filter_match_total=len(albums), page=1
+        )
+
+    @app.get("/do-match/<int:rating_key>")
+    def do_match(rating_key: int):
+        result = int(request.args.get("result", ""))
+        album = album_cache.get(rating_key)
+
+        found_matches = album.matches()
+        match = found_matches[result]
+        album.fixMatch(searchResult=match)
+        album_cache.update(album)
+
+        return redirect(url_for("unmatched"))
+
     @app.get("/history")
     def history():
-        oldest = request.args.get("oldest") or None
+        oldest = request.args.get("oldest") or (datetime.now() - timedelta(days=7)).timestamp()
         oldest_input = request.args.get("oldest_input")
 
         if oldest_input:
@@ -494,7 +668,7 @@ def create_app() -> Flask:
 
         newest = (
             request.args.get("newest")
-            or (datetime.now() - timedelta(days=0)).timestamp()
+            or (datetime.now() + timedelta(days=1)).timestamp()
         )
 
         newest_input = request.args.get("newest_input")
@@ -502,9 +676,9 @@ def create_app() -> Flask:
         if newest_input:
             newest = datetime.strptime(newest_input, "%Y-%m-%d").timestamp()
 
-        max = int(request.args.get("max") or 25) or None
+        should_filter = query_bool(request, "filter")
 
-        filter = query_bool(request, "filter")
+        max_results = int(request.args.get("max") or 25) or None if not should_filter else None
 
         args = {
             "librarySectionID": section.key,
@@ -516,8 +690,9 @@ def create_app() -> Flask:
             args["viewedAt>"] = int(oldest)
 
         key = f"/status/sessions/history/all?{urlencode(args)}"
+        print(key)
 
-        history = section.fetchItems(key, maxresults=max)
+        history = section.fetchItems(key, maxresults=max_results)
 
         newest_shown = (
             int(history[0].viewedAt.timestamp()) if len(history) > 0 else int(newest)
@@ -531,7 +706,7 @@ def create_app() -> Flask:
         prev_play = None
         filtered_plays = []
 
-        if filter:
+        if should_filter:
             prev_play = None
             for play in history:
                 if (
@@ -552,14 +727,15 @@ def create_app() -> Flask:
             except Exception as e:
                 play.url = None
 
+        oldest_input = oldest or (datetime.now() - timedelta(days=7)).timestamp()
         return render_template(
             "history_editor.html",
             history=filtered_plays,  # TODO: this always shows a previous button even when not available?
             newest_shown=newest_shown + 1,
             oldest_shown=oldest_shown - 1,  # Not clean, but ensures we avoid repeats
-            max=max or 0,
-            should_filter=filter,
-            oldest_input=datetime.fromtimestamp(oldest or 0).strftime("%Y-%m-%d"),
+            max=max_results or 0,
+            should_filter=should_filter,
+            oldest_input=datetime.fromtimestamp(oldest_input).strftime("%Y-%m-%d"),
             newest_input=datetime.fromtimestamp(int(newest)).strftime("%Y-%m-%d"),
         )
 
@@ -600,7 +776,16 @@ def create_app() -> Flask:
     return app
 
 
-app = create_app()
+def shutdown(sig, frame):
+    print("Server shutting down...")
+    sys.exit(0)
+
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=int(env("PORT", "5000")), debug=True)
+    app = create_app()
+    app.run(
+        host="127.0.0.1",
+        port=int(env("PORT", "5000")),
+        debug=bool(env("DEBUG", "")),
+    )
+    signal.signal(signal.SIGINT, shutdown)

@@ -3,8 +3,9 @@ from env import env
 from titlecase import titlecase
 import requests
 from plex_queue import plex_queue
+from files import sync_album_genres_to_track_files, music_library_root
 
-GENRE_IDENTIFIER = "[Genre] "
+GENRE_IDENTIFIER = "º "
 
 
 def collection_name_from_tag(genre):
@@ -21,11 +22,12 @@ def find_collection(genre, section):
 def create_genre_collection(genre, album, section):
     name = collection_name_from_tag(genre)
     print(f"Create {name}")
-    section.createCollection(name, items=[album])
+    collection = section.createCollection(name, items=[album])
+    collection.editSortTitle(f"zz {name}")
 
 
 def album_in_collection(album, collection):
-    return album in collection.items()
+    return collection.title in [c.tag for c in album.collections]
 
 
 def add_album_to_collection(album, collection):
@@ -34,7 +36,6 @@ def add_album_to_collection(album, collection):
 
 def sync_album_genre_to_collection(album, section):
     genres = [g.tag for g in album.genres]
-    print("tags:", genres, album.genres)
     for genre in genres:
         name = collection_name_from_tag(genre)
         collection = find_collection(name, section)
@@ -70,21 +71,34 @@ def sync_collection_to_album_genre(album, section):
     collections = [c.tag for c in album.collections]
     genres = [g.tag for g in album.genres]
 
+    folded_coll = [c.casefold() for c in collections]
+    folded_tags = [t.casefold() for t in genres]
+
     genres_to_add = []
-    print("collections:", collections, album.collections)
     for collection in collections:
         if GENRE_IDENTIFIER not in collection:
             continue
         name = genre_name_from_collection(collection)
-        if name not in genres:
+        if name.casefold() not in folded_tags:
             genres_to_add.append(name)
 
-    if len(genres_to_add) < 1:
+    genres_to_remove = []
+    for genre in genres:
+        name = collection_name_from_tag(genre)
+        if name.casefold() not in folded_coll:
+            genres_to_remove.append(genre)
+
+    if len(genres_to_add) < 1 and len(genres_to_remove) < 1:
         return
 
-    tags = genres + genres_to_add
+    tags = list(set(genres + genres_to_add) - set(genres_to_remove))
+    print(tags)
+    yield f"\t{tags}\n"
     set_album_genres(album, tags)
     set_tracks_genres(album, tags, section)
+
+    if bool(env("EDIT_TAGS", "")):
+        sync_album_genres_to_track_files(album)
 
 
 def remove_album_genre(album, genre, section):

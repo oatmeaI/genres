@@ -412,11 +412,6 @@ genres:
   related: 
     - Death Metal
 
-- name: Unsure
-  examples: 
-    - Used to queue albums to decide later
-  related: 
-
 - name: EDM Trap
   examples: 
   related: 
@@ -492,4 +487,29 @@ genres:
   examples: 
     - Shawn Wasabi
   related: 
+    - Electronic Dance Music
+
+- name: New Wave Hardcore
+  examples: 
+    - Drug Church
+    - Turnstile
+    - Militarie Gun
+  related: 
+
+- name: J-Rock
+  examples: 
+  related: 
+
+- name: OG Dubstep
+  examples: 
+    - Wraz
+    - Widdler
+  related: 
+    - Dubstep
+
+- name: Bass House
+  examples: 
+    - Jauz
+  related: 
+    - Electro House
     - Electronic Dance Music

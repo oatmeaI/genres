@@ -1,0 +1,14 @@
+<tr id="album-{{ album.ratingKey }}" class="genre-editor album-row">
+  <td class="album-cell-thumb" data-label="">
+    {% if album.thumbUrl %}
+      <img class="thumb" src="{{ album.thumbUrl }}" alt="" width="44" height="44" loading="lazy">
+    {% else %}
+      <div class="thumb thumb-placeholder" aria-hidden="true"></div>
+    {% endif %}
+    <div class="artist">{{ album.parentTitle or '—' }}</div>
+    <div class="album-title">{{ album.title }}</div>
+  </td>
+  <td class="album-cell-genres" data-label="Genre">
+        {{ album.leafCount }} / {{ album.last_track.trackNumber }}
+  </td>
+</tr>

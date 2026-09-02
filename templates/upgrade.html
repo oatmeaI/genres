@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Low-quality Albums{% endblock %}
+{% block heading %}Low-quality Albums{% endblock %}
+
+{% block subheading %}
+<p>Albums with bitrate lower than {{ bitrate }}</p>
+{% endblock %}
+
+{% block body %}
+  {% if error %}
+    <div class="banner error">{{ error }}</div>
+  {% endif %}
+
+  <p class="album-stats">
+    <strong>{{ "{:,}".format(filter_match_total) }}</strong> albums match filters
+    ·
+    <strong>{{ "{:,}".format(library_album_total) }}</strong> albums loaded
+  </p>
+
+  {% if albums %}
+    <table class="album-table">
+      <thead>
+        <tr>
+          <th scope="col">Artist / album</th>
+          <th scope="col">Bitrate</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for album in albums %}
+            <tr id="album-{{ album.ratingKey }}" class="genre-editor album-row">
+              <td class="album-cell-thumb" data-label="">
+                {% if album.thumbUrl %}
+                  <img class="thumb" src="{{ album.thumbUrl }}" alt="" width="44" height="44" loading="lazy">
+                {% else %}
+                  <div class="thumb thumb-placeholder" aria-hidden="true"></div>
+                {% endif %}
+                <div class="artist">{{ album.parentTitle or '—' }}</div>
+                <div class="album-title">{{ album.title }}</div>
+              </td>
+              <td class="album-cell-genres" data-label="Genre">
+                <ul>
+                    {% for track in album.loaded_tracks %}
+                        <li>
+                            {{ track.title }}
+                            {% for stream in track.media %}
+                                {{ stream.bitrate }} {{
+                                stream.audioCodec|upper }}
+                            {% endfor %}
+                        </li>
+                    {% endfor %}
+                </ul>
+              </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-muted">No albums on this page.</p>
+  {% endif %}
+
+  <div class="pager">
+    {% if page > 1 %}
+      <a href="{{ url_for(
+        'upgrade',
+        page=page - 1,
+        bitrate=bitrate,
+        sort=album_sort if album_sort != 'played' else none,
+      ) }}">← Previous</a>
+    {% endif %}
+
+    <span>Page {{ page }}</span>
+
+    {% if pager_has_next %}
+      <a href="{{ url_for(
+        'upgrade',
+        page=page + 1,
+        bitrate=bitrate,
+        sort=album_sort if album_sort != 'played' else none,
+      ) }}">Next →</a>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,8 +1,13 @@
 from plexapi.library import MusicSection
+from plexapi import CONFIG
+CONFIG.autoreload = False  # requires manual reload() calls
+import plexapi
 from datetime import datetime
 from util import disable_requests_logging, enable_requests_logging, timer
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from env import env
+import rich
+from plex import sync_collection_to_album_genre
 
 ALBUM_SORT_RECENTLY_PLAYED = "played"
 ALBUM_SORT_RECENTLY_ADDED = "added"
@@ -140,11 +145,82 @@ class AlbumCache:
         self.album_sort = album_sort
 
     def preload_album(self, album):
-        album.reload()  # hacky way to preload genres for the album
+        album._autoReload = False # Stops python-plexapi from making extra requests; might break stuff
+        tracks = album.tracks()
+
+        # Hacky and slow way to preload user ratings for tracks.
+        # Gotta be a way to make this faster...
+        for track in tracks:
+            track._autoReload = False
+            track.loaded_rating = track.userRating
+            track.loaded_plays = track.viewCount
+
+        album.loaded_tracks = tracks
+        album.last_track = tracks[-1]
+
+        for yield_value in sync_collection_to_album_genre(album, self.section):
+            pass
+
         return album.ratingKey, album
 
     def size(self):
         return len(list(self.albums.values()))
+
+    # TODO: duplicating this whole thing is stupid but whatever
+    def load_generator(
+        self,
+        force: bool = False,
+        chunk: int = 100,
+        max_scan: int | None = None,
+    ):
+        timer.time("load")
+
+        if bool(env("DEBUG", "")):
+            max_scan = int(env("DEBUG_MAX_SCAN", "300"))
+
+        max_scan = max_scan or int(env("MAX_SCAN", "50_000"))
+
+        if self.loaded and not force:
+            return
+
+        container_start = 0
+        scanned = 0
+
+        while scanned < max_scan:
+            batch = self.section.search(
+                libtype="album",
+                sort=self.album_sort,
+                maxresults=chunk,
+                container_start=container_start,
+            )
+
+            if not batch:
+                break
+
+            scanned += len(batch)
+            loaded = self.section.fetchItems(
+                [x.ratingKey for x in batch],
+            )
+
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_album = {
+                    executor.submit(self.preload_album, album): album
+                    for album in loaded
+                }
+                for future in as_completed(future_to_album):
+                    rating_key, album = future.result()
+                    self.albums[rating_key] = album
+
+            yield f"."
+
+            container_start += len(batch)
+
+            if len(batch) < chunk:
+                break
+
+        self.loaded = True
+
+        timer.time("load")
 
     def load(
         self,
@@ -153,6 +229,9 @@ class AlbumCache:
         max_scan: int | None = None,
     ):
         timer.time("load")
+
+        if bool(env("DEBUG", "")):
+            max_scan = int(env("DEBUG_MAX_SCAN", "300"))
 
         max_scan = max_scan or int(env("MAX_SCAN", "50_000"))
 
@@ -194,6 +273,8 @@ class AlbumCache:
             if len(batch) < chunk:
                 break
 
+            
+
         self.loaded = True
 
         timer.time("load")
@@ -202,7 +283,7 @@ class AlbumCache:
         if rating_key in self.albums:
             return self.albums[rating_key]
         else:
-            album = self.section.get(rating_key)
+            album = self.section.searchAlbums(id=rating_key)[0]
             album.reload()
             self.albums[rating_key] = album
             return album
@@ -211,6 +292,144 @@ class AlbumCache:
         album.reload()
         self.albums[album.ratingKey] = album
         return album
+
+    def partially_played_albums(
+        self,
+    ):
+        def filter_unplayed(album):
+            return any(
+                track.loaded_plays < 1 for track in album.loaded_tracks
+            ) and any(track.loaded_plays > 0 for track in album.loaded_tracks)
+
+        all_album_list = list(
+                filter(
+                    lambda album: (filter_unplayed(album)),
+                    list(self.albums.values()),
+                )
+            )
+        return all_album_list
+
+    def unfaved_albums(
+        self,
+    ):
+        def filter_unfaved(album):
+            return all(
+                track.loaded_rating == None for track in album.loaded_tracks
+            )
+
+        all_album_list = list(
+                filter(
+                    lambda album: (filter_unfaved(album)),
+                    list(self.albums.values()),
+                )
+            )
+        return all_album_list
+
+    def unplayed_albums(
+        self,
+    ):
+        def filter_unplayed(album):
+            return all(
+                track.viewCount < 1 for track in album.loaded_tracks
+            )
+
+        all_album_list = list(
+                filter(
+                    lambda album: (filter_unplayed(album)),
+                    list(self.albums.values()),
+                )
+            )
+        return all_album_list
+
+    def upgrade_albums(
+        self,
+        bitrate = 320
+    ):
+        def filter_upgrade(album):
+            return all(
+                (track.media[0].bitrate if track.media[0].bitrate is not None else 0) < bitrate for track in album.loaded_tracks
+            )
+
+        all_album_list = list(
+                filter(
+                    lambda album: (filter_upgrade(album)),
+                    list(self.albums.values()),
+                )
+            )
+        return all_album_list
+
+    # TODO: will not detect albums where the missing tracks are at the end of the album
+    def incomplete_albums(
+        self,
+    ):
+        def filter_incomplete(album):
+            if album.last_track.trackNumber is None or album.loaded_tracks is None:
+                # TODO: note this somewhere, probably
+                return False  
+
+            #NOTE: `and` condition here filters for only albums that have been matched; should be an option
+            return (len(album.loaded_tracks) < album.last_track.trackNumber) and len(album.guids) > 0
+
+        all_album_list = list(
+                filter(
+                    lambda album: (filter_incomplete(album)),
+                    list(self.albums.values()),
+                )
+            )
+        return all_album_list
+
+    def fetch_upgrade_page(
+        self,
+        page: int,
+        per: int,
+        album_sort: str = DEFAULT_ALBUM_SORT,
+        bitrate: int = 256,
+    ):
+        def filter_upgradeable(album):
+            return any(
+                track.media[0].bitrate < bitrate for track in album.loaded_tracks
+            )
+
+        start = (page - 1) * per
+        all_album_list = sort_albums(
+            list(
+                filter(
+                    lambda album: (filter_upgradeable(album)),
+                    list(self.albums.values()),
+                )
+            ),
+            album_sort,
+        )
+        album_list = all_album_list[start : start + per]
+        has_next = start + per < len(all_album_list)
+
+        return album_list, has_next, len(all_album_list)
+
+    # TODO: will not detect albums where the missing tracks are at the end of the album
+    def fetch_incomplete_page(
+        self, page: int, per: int, album_sort: str = DEFAULT_ALBUM_SORT
+    ):
+        def filter_incomplete(album):
+            if album.last_track.trackNumber is None or album.loaded_tracks is None:
+                return False  # TODO: note this somewhere, probably
+            #NOTE: `and` condition here filters for only albums that have been matched;
+            # should be an option
+            return (len(album.loaded_tracks) < album.last_track.trackNumber) and len(album.guids) > 0
+
+        start = (page - 1) * per
+        all_album_list = sort_albums(
+            list(
+                filter(
+                    lambda album: (filter_incomplete(album)),
+                    list(self.albums.values()),
+                )
+            ),
+            album_sort,
+        )
+        album_list = all_album_list[start : start + per]
+        has_next = start + per < len(all_album_list)
+
+        return album_list, has_next, len(all_album_list)
 
     def fetch_page(
         self,

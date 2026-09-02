@@ -19,8 +19,14 @@
   <header>
     <nav class="site-nav" aria-label="Main">
       <a href="{{ url_for('index') }}">Albums</a>
-      <a href="{{ url_for('genres_editor') }}">Edit genres.yaml</a>
-      <a href="{{ url_for('history') }}">Play history</a>
+      <a href="{{ url_for('genres_editor') }}">Edit genres list</a>
+      <a href="{{ url_for('history', filter=1) }}">Play history</a>
+      <a href="{{ url_for('incomplete') }}">Incomplete albums</a>
+      <a href="{{ url_for('upgrade', bitrate=192) }}">Upgradeable albums</a>
+      <a href="{{ url_for('played_ratio') }}">Stats</a>
+      <a href="{{ url_for('update') }}">Update Collections</a>
+      <a href="{{ url_for('sync_collection_genre') }}">Sync Collection -> Genre (Collection as source of truth)</a>
+      <a href="{{ url_for('sync_genre_collection') }}">Sync Genre -> Collection</a>
     </nav>
     <h1>{% block heading %}Plex genres{% endblock %}</h1>
     {% block subheading %}{% endblock %}
