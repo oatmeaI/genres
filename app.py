@@ -12,7 +12,7 @@ import logging
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
 from copy import copy
-from flask import Flask, abort, redirect, render_template, request, url_for, Response, stream_with_context
+from flask import Flask, abort, redirect, render_template, request, url_for, Response, stream_with_context, send_from_directory
 from lastfm import get_album_tags
 from markupsafe import escape
 from plex_queue import plex_queue
@@ -343,6 +343,13 @@ Played albums with no rated tracks:\t{unfaved_albums} / {all_albums}\t({(unfaved
             library_album_total=library_album_total,
             filter_match_total=filter_match_total,
         )
+
+    @app.get("/sw.js")
+    def service_worker():
+        # Served from the root (not /static/) so its scope covers the whole app.
+        response = send_from_directory(app.static_folder, "js/sw.js")
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
     @app.route("/")
     def index():
